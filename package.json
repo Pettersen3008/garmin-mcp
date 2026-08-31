@@ -1,0 +1,21 @@
+{
+  "name": "garmin-mcp",
+  "private": true,
+  "packageManager": "bun@1.4.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "auth": "bun run --cwd packages/garmin-connect auth",
+    "check": "biome check . && bun run typecheck && bun test",
+    "live-check": "bun scripts/live-check.ts",
+    "start": "bun run --cwd packages/garmin-mcp start",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "verify": "bun install --frozen-lockfile && bun run check && bun audit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.11",
+    "@types/bun": "1.3.11",
+    "typescript": "7.0.2"
+  }
+}

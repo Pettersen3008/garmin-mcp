@@ -1,0 +1,17 @@
+[
+  {
+    "calendarDate": "2026-08-30",
+    "timestamp": "2026-08-30T06:30:00.0",
+    "level": "HIGH",
+    "feedbackShort": "WELL_RECOVERED",
+    "score": 82,
+    "sleepScore": 87,
+    "recoveryTime": 120
+  },
+  {
+    "calendarDate": "2026-08-30",
+    "timestamp": "2026-08-30T05:30:00.0",
+    "level": "MODERATE",
+    "score": 70
+  }
+]

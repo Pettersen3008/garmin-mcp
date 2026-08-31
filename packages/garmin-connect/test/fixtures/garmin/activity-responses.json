@@ -1,0 +1,29 @@
+{
+  "list": [
+    {
+      "activityId": 42,
+      "activityName": "Synthetic morning run",
+      "activityType": { "typeKey": "running" },
+      "startTimeLocal": "2025-01-02 07:30:00",
+      "distance": 5000.5,
+      "duration": 1500,
+      "movingDuration": 1450,
+      "calories": 320,
+      "averageHR": 140,
+      "maxHR": 165,
+      "elevationGain": 75,
+      "avgPower": 240,
+      "aerobicTrainingEffect": 3.2
+    }
+  ],
+  "detail": {
+    "activityId": "43",
+    "activityName": "Synthetic evening ride",
+    "activityTypeDTO": { "typeKey": "cycling" },
+    "summaryDTO": {
+      "startTimeLocal": "2025-01-03 18:00:00",
+      "duration": 1800,
+      "avgPower": null
+    }
+  }
+}

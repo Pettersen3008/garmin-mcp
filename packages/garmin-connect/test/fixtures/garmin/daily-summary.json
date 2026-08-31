@@ -1,0 +1,15 @@
+{
+  "calendarDate": "2026-08-30",
+  "totalSteps": 8123,
+  "dailyStepGoal": 9000,
+  "totalDistanceMeters": 6240,
+  "activeKilocalories": 540,
+  "totalKilocalories": 2320,
+  "restingHeartRate": 48,
+  "averageStressLevel": 24,
+  "bodyBatteryHighestValue": 82,
+  "bodyBatteryLowestValue": 31,
+  "floorsAscended": 7,
+  "moderateIntensityMinutes": 12,
+  "vigorousIntensityMinutes": 8
+}

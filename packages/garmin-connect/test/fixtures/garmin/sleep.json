@@ -1,0 +1,16 @@
+{
+  "dailySleepDTO": {
+    "calendarDate": "2026-08-30",
+    "sleepTimeSeconds": 27300,
+    "deepSleepSeconds": 4200,
+    "lightSleepSeconds": 15700,
+    "remSleepSeconds": 6100,
+    "awakeSleepSeconds": 1300,
+    "sleepStartTimestampGMT": 1788042600000,
+    "sleepEndTimestampGMT": 1788071200000,
+    "avgSleepHRV": 54,
+    "avgSpO2": 96,
+    "avgRespirationValue": 13.2,
+    "sleepScores": { "overall": { "value": 87 } }
+  }
+}
