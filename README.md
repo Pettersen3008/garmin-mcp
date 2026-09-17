@@ -1,5 +1,10 @@
 # Garmin MCP
 
+[![Check](https://github.com/Pettersen3008/garmin-mcp/actions/workflows/check.yml/badge.svg)](https://github.com/Pettersen3008/garmin-mcp/actions/workflows/check.yml)
+
+Personal, read-only MCP access to Garmin Connect. This is not an official
+Garmin integration and uses undocumented consumer endpoints.
+
 This Bun monorepo contains a private, read-only Garmin Connect SDK and six MCP tools. Garmin does not support the consumer endpoints this code calls, so they can change without notice.
 
 ## Current state
