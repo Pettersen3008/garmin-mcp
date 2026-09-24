@@ -14,7 +14,7 @@
     "verify": "bun install --frozen-lockfile && bun run check && bun audit"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.11",
+    "@biomejs/biome": "2.5.14",
     "@types/bun": "1.3.11",
     "typescript": "7.0.2"
   }
