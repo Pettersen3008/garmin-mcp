@@ -1,17 +1,15 @@
 {
   "mostRecentTrainingStatus": {
-    "payload": {
-      "latestTrainingStatusData": {
-        "device": {
-          "calendarDate": "2026-08-30",
-          "sinceDate": "2026-08-26",
-          "trainingStatus": 7,
-          "primaryTrainingDevice": true,
-          "trainingStatusFeedbackPhrase": "PRODUCTIVE",
-          "acuteTrainingLoadDTO": {
-            "dailyTrainingLoadAcute": 410,
-            "dailyAcuteChronicWorkloadRatio": 1.2
-          }
+    "latestTrainingStatusData": {
+      "device": {
+        "calendarDate": "2026-08-30",
+        "sinceDate": "2026-08-26",
+        "trainingStatus": 7,
+        "primaryTrainingDevice": true,
+        "trainingStatusFeedbackPhrase": "PRODUCTIVE",
+        "acuteTrainingLoadDTO": {
+          "dailyTrainingLoadAcute": 410,
+          "dailyAcuteChronicWorkloadRatio": 1.2
         }
       }
     }

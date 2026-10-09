@@ -15,5 +15,6 @@ export function parseLocalDate(value: string): LocalDate {
     throw new RangeError("Expected a valid calendar date in YYYY-MM-DD format");
   }
 
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the checks above are what make this a LocalDate
   return value as LocalDate;
 }

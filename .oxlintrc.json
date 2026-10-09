@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    // Retries and pagination are sequential by design.
+    "no-await-in-loop": "off",
+    // Conditional spreads are how optional fields stay absent under exactOptionalPropertyTypes.
+    "oxc/no-map-spread": "off",
+    // tsc enforces this with noImplicitReturns and understands exhaustive switches.
+    "typescript/consistent-return": "off"
+  },
+  "overrides": [
+    {
+      // bun-types declares `expect(...).rejects` matchers as sync, but they return a promise that must be awaited.
+      "files": ["**/test/**"],
+      "rules": { "typescript/await-thenable": "off" }
+    }
+  ]
+}

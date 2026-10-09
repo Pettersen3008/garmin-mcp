@@ -1,0 +1,13 @@
+{
+  "userProfilePK": 1,
+  "calendarDate": "2026-08-30",
+  "lowestRespirationValue": 9,
+  "highestRespirationValue": 27,
+  "avgWakingRespirationValue": 15,
+  "avgSleepRespirationValue": 12,
+  "respirationValuesArray": [
+    [1788040800000, -2],
+    [1788044400000, 12.5],
+    [1788048000000, 16]
+  ]
+}

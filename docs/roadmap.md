@@ -1,44 +1,13 @@
 # Roadmap
 
-This roadmap starts from the current repository state on 2026-08-31. Each phase needs evidence before the next phase starts.
+The server covers activities, workouts, daily health, health history, sleep, and training data. The next endpoint families, in order:
 
-## Phase 0: prove the private account path
+1. Gear: list, create, edit, retire, and assign gear to an activity.
+2. Courses and routes: list, detail, create, edit, delete, and send to a device where Garmin supports it.
+3. Goals and the remaining Garmin Connect calendar data used for training planning.
 
-Current state: offline complete, live check still open.
+Health Snapshot stays out of scope. Garmin exposes it only as a FIT archive download, and the project does not parse FIT files.
 
-- Run `bun run auth` on the target Mac.
-- Run `GARMIN_E2E=1 bun run live-check <date>` against a date that has sleep and training data.
-- Replace synthetic fixture values with anonymized account-shaped payloads only if the live payload differs.
-- Use the MCP server in regular personal use for at least four weeks.
+## Every endpoint
 
-Exit condition: the private flow survives regular use, and a Garmin payload change fails in a mapper with a redacted error instead of silently changing tool output.
-
-## Phase 1: add one read feature family
-
-Add the first feature that repeated use justifies. The current order is body data, workouts, then gear.
-
-Each new feature needs:
-
-- one stable SDK model
-- one fixture-backed mapper test
-- one request-contract test
-- one read-only MCP tool
-- one live-check call
-
-Do not add more than one feature family in the same phase.
-
-## Phase 2: add coaching summaries
-
-Add coaching only after the base read models stay stable in personal use. Coaching composes public SDK calls. Coaching does not import feature internals or raw Garmin JSON.
-
-## Later
-
-- Add an official adapter only after Garmin approves Developer Program access.
-- Add write tools only with explicit confirmation, idempotency rules, and dedicated tests.
-- Add caching only after measured latency or rate limits justify it.
-- Publish `@pettersen/garmin-connect` only after another application uses the public API.
-- Add Linux or Windows credential storage before claiming support for those systems.
-
-## Still out of scope
-
-Do not add FIT parsing, GPS tracks, a database, an HTTP server, trend calculations, or a third package until a real consumer needs one.
+Each endpoint needs a stable model, an anonymized fixture, mapper tests, request-contract tests, MCP input validation, and a live check. Every write tool requires `confirm: true`. A payload or contract change in a private endpoint must fail visibly, with redacted diagnostics.

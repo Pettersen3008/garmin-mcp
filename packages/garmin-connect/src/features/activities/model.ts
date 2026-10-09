@@ -3,6 +3,7 @@ import type { LocalDate } from "../../local-date.ts";
 export type Activity = {
   id: string;
   name: string;
+  description?: string;
   type: string;
   startedAtLocal: string;
   distanceMeters?: number;
@@ -16,6 +17,13 @@ export type Activity = {
   aerobicTrainingEffect?: number;
 };
 
-export type ListActivitiesInput =
-  | { limit: number; from?: never; to?: never }
-  | { limit: number; from: LocalDate; to?: LocalDate };
+export type EditActivityInput = {
+  id: string;
+  name?: string | undefined;
+  description?: string | undefined;
+};
+
+export type ListActivitiesInput = {
+  limit: number;
+  start?: number | undefined;
+} & ({ from?: never; to?: never } | { from: LocalDate; to?: LocalDate });

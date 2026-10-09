@@ -1,21 +1,21 @@
-# ADR 001: Use a private Garmin Connect adapter for the first release
+# ADR 001: Use a private Garmin Connect adapter
 
 ## Status
 
-Accepted on 2026-08-31.
+Accepted.
 
 ## Context
 
-Garmin does not offer a self-service public API for a person to read their own Garmin Connect account from a Bun or TypeScript service. Garmin's supported Connect Developer Program is approval-based and aimed at business integrations. This project still needs a personal, read-only path for local MCP use.
+Garmin offers no self-service public API that lets a person read or change their own Garmin Connect account from a Bun or TypeScript service. Garmin's Connect Developer Program requires approval and targets business integrations. This project needs a personal path for local MCP use, covering both reads and confirmed writes.
 
-The user also chose a Bun monorepo with two packages:
+The repository is a Bun monorepo with two packages:
 
 - `@pettersen/garmin-connect` for Garmin authentication, private HTTP calls, response parsing, and stable models.
 - `@pettersen/garmin-mcp` for MCP tool schemas and result conversion.
 
 ## Decision
 
-The first release uses a private Garmin Connect adapter behind `@pettersen/garmin-connect`.
+The project uses a private Garmin Connect adapter behind `@pettersen/garmin-connect`.
 
 The adapter owns:
 
@@ -36,7 +36,7 @@ This choice also sets hard limits:
 - The project cannot promise endpoint stability.
 - The project cannot claim Garmin support or official compatibility.
 - The live account check must stay manual and opt-in.
-- New features should land one endpoint family at a time, with anonymized fixtures first.
+- New features land one endpoint family at a time, with anonymized fixtures first.
 
 ## Follow-up
 

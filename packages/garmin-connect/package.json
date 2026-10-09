@@ -1,13 +1,23 @@
 {
   "name": "@pettersen/garmin-connect",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
+  "description": "Unofficial TypeScript client for undocumented Garmin Connect endpoints",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pettersen3008/garmin-mcp.git",
+    "directory": "packages/garmin-connect"
+  },
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
     "auth": "bun src/auth/login.ts"
   },
   "dependencies": {
-    "zod": "4.5.4"
+    "zod": "^4.6.5"
+  },
+  "engines": {
+    "bun": ">=1.4.2"
   }
 }

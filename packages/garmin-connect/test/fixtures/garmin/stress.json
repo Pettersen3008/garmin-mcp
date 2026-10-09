@@ -1,0 +1,13 @@
+{
+  "userProfilePK": 1,
+  "calendarDate": "2026-08-30",
+  "startTimestampGMT": "2026-08-29T22:00:00.0",
+  "endTimestampGMT": "2026-08-30T22:00:00.0",
+  "maxStressLevel": 82,
+  "avgStressLevel": 24,
+  "stressValuesArray": [
+    [1788040800000, -1],
+    [1788044400000, 18],
+    [1788048000000, 42]
+  ]
+}

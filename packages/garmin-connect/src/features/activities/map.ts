@@ -1,91 +1,61 @@
+import { z } from "zod";
+import { garminIdSchema } from "../../garmin-id.ts";
 import { GarminInvalidResponseError } from "../../http/errors.ts";
 import type { Activity } from "./model.ts";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function invalid(field: string): never {
-  throw new GarminInvalidResponseError(
-    `Garmin activity response has invalid or missing ${field}`,
-  );
-}
-
-function requiredRecord(
-  value: unknown,
-  field: string,
-): Record<string, unknown> {
-  if (!isRecord(value)) {
-    invalid(field);
-  }
-  return value;
-}
-
-function requiredString(record: Record<string, unknown>, key: string): string {
-  const value = record[key];
-  if (typeof value !== "string" || value.length === 0) {
-    invalid(key);
-  }
-  return value;
-}
-
-function requiredId(record: Record<string, unknown>): string {
-  const value = record.activityId;
-  if (typeof value === "string" && /^[1-9]\d*$/.test(value)) {
-    return value;
-  }
-  if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) {
-    return String(value);
-  }
-  return invalid("activityId");
-}
-
-function optionalNumber(
-  record: Record<string, unknown>,
-  key: string,
-  fallbackKey?: string,
-): number | undefined {
-  const value = record[key] ?? (fallbackKey ? record[fallbackKey] : undefined);
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    invalid(key);
-  }
-  return value;
-}
+const measurement = z.number().nullish();
+const summarySchema = z.object({
+  aerobicTrainingEffect: measurement,
+  averageHR: measurement,
+  averagePower: measurement,
+  avgPower: measurement,
+  calories: measurement,
+  distance: measurement,
+  duration: measurement,
+  elevationGain: measurement,
+  maxHR: measurement,
+  movingDuration: measurement,
+  startTimeLocal: z.string().min(1).optional(),
+});
+const typeSchema = z.object({ typeKey: z.string().min(1) }).nullish();
+const activitySchema = summarySchema.extend({
+  activityId: garminIdSchema,
+  activityName: z.string().min(1),
+  activityType: typeSchema,
+  activityTypeDTO: typeSchema,
+  description: z.string().nullish(),
+  summaryDTO: summarySchema.nullish(),
+});
 
 export function mapActivity(input: unknown): Activity {
-  const record = requiredRecord(input, "activity");
-  const summary =
-    record.summaryDTO === undefined
-      ? record
-      : requiredRecord(record.summaryDTO, "summaryDTO");
-  const activityType = requiredRecord(
-    record.activityType ?? record.activityTypeDTO,
-    "activityType",
-  );
+  const raw = activitySchema.safeParse(input).data;
+  const summary = raw?.summaryDTO ?? raw;
+  const type = raw?.activityType ?? raw?.activityTypeDTO;
+  if (!raw || !summary?.startTimeLocal || !type) {
+    throw new GarminInvalidResponseError("Garmin returned an invalid activity");
+  }
   const activity: Activity = {
-    id: requiredId(record),
-    name: requiredString(record, "activityName"),
-    type: requiredString(activityType, "typeKey"),
-    startedAtLocal: requiredString(summary, "startTimeLocal"),
+    id: raw.activityId,
+    name: raw.activityName,
+    type: type.typeKey,
+    startedAtLocal: summary.startTimeLocal,
   };
 
   const fields = {
-    distanceMeters: optionalNumber(summary, "distance"),
-    durationSeconds: optionalNumber(summary, "duration"),
-    movingDurationSeconds: optionalNumber(summary, "movingDuration"),
-    caloriesKilocalories: optionalNumber(summary, "calories"),
-    averageHeartRateBpm: optionalNumber(summary, "averageHR"),
-    maxHeartRateBpm: optionalNumber(summary, "maxHR"),
-    elevationGainMeters: optionalNumber(summary, "elevationGain"),
-    averagePowerWatts: optionalNumber(summary, "avgPower", "averagePower"),
-    aerobicTrainingEffect: optionalNumber(summary, "aerobicTrainingEffect"),
+    description: raw.description,
+    distanceMeters: summary.distance,
+    durationSeconds: summary.duration,
+    movingDurationSeconds: summary.movingDuration,
+    caloriesKilocalories: summary.calories,
+    averageHeartRateBpm: summary.averageHR,
+    maxHeartRateBpm: summary.maxHR,
+    elevationGainMeters: summary.elevationGain,
+    averagePowerWatts: summary.avgPower ?? summary.averagePower,
+    aerobicTrainingEffect: summary.aerobicTrainingEffect,
   };
 
   for (const [key, value] of Object.entries(fields)) {
-    if (value !== undefined) {
+    if (value != null) {
       Object.assign(activity, { [key]: value });
     }
   }
@@ -95,7 +65,7 @@ export function mapActivity(input: unknown): Activity {
 
 export function mapActivities(input: unknown): Activity[] {
   if (!Array.isArray(input)) {
-    invalid("activity list");
+    throw new GarminInvalidResponseError("Garmin returned an invalid activity list");
   }
   return input.map(mapActivity);
 }

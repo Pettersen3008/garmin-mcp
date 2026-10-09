@@ -1,0 +1,12 @@
+{
+  "calendarDate": "2026-08-30",
+  "minHeartRate": 43,
+  "maxHeartRate": 151,
+  "restingHeartRate": 48,
+  "lastSevenDaysAvgRestingHeartRate": 49,
+  "heartRateValues": [
+    [1788040800000, 52],
+    [1788040920000, null],
+    [1788041040000, 55]
+  ]
+}

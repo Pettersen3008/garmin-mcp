@@ -1,5 +1,6 @@
 import {
   GarminAuthError,
+  GarminHttpError,
   GarminInvalidResponseError,
   GarminNetworkError,
   GarminRateLimitError,
@@ -12,23 +13,31 @@ export function success(data: Record<string, unknown>) {
   };
 }
 
+function errorCode(error: unknown): string {
+  if (error instanceof GarminAuthError) return "auth";
+  if (error instanceof GarminRateLimitError) return "rate_limit";
+  if (error instanceof GarminNetworkError) return "network";
+  if (error instanceof GarminInvalidResponseError) return "invalid_response";
+  if (error instanceof GarminHttpError) {
+    if (error.status === 404) return "not_found";
+    return error.status < 500 ? "invalid_request" : "upstream";
+  }
+  if (error instanceof RangeError) return "invalid_input";
+  return "internal";
+}
+
 export function failure(error: unknown) {
-  const detail =
-    error instanceof GarminAuthError
-      ? { code: "auth", message: error.message }
-      : error instanceof GarminRateLimitError
-        ? { code: "rate_limit", message: error.message }
-        : error instanceof GarminNetworkError
-          ? { code: "network", message: error.message }
-          : error instanceof GarminInvalidResponseError
-            ? { code: "invalid_response", message: error.message }
-            : error instanceof RangeError
-              ? { code: "invalid_input", message: error.message }
-              : { code: "internal", message: "Garmin tool failed" };
+  const code = errorCode(error);
+  if (code === "internal") {
+    console.error(error);
+  }
+  const detail = {
+    code,
+    message:
+      code === "internal" || !(error instanceof Error) ? "Garmin tool failed" : error.message,
+  };
   return {
-    content: [
-      { type: "text" as const, text: JSON.stringify({ error: detail }) },
-    ],
+    content: [{ type: "text" as const, text: JSON.stringify({ error: detail }) }],
     isError: true,
     structuredContent: { error: detail },
   };
