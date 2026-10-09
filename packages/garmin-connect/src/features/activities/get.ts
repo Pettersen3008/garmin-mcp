@@ -11,7 +11,5 @@ export async function getActivity({
   id: string;
 }): Promise<Activity> {
   assertGarminId(id, "Activity id");
-  return mapActivity(
-    await getJson({ path: `/activity-service/activity/${id}` }),
-  );
+  return mapActivity(await getJson({ path: `/activity-service/activity/${id}` }));
 }

@@ -46,9 +46,7 @@ it("given an expired access token, when requesting JSON, then refreshes and save
     },
   });
 
-  await expect(
-    getJson({ path: "/example", query: { date: "2026-08-30" } }),
-  ).resolves.toEqual({
+  await expect(getJson({ path: "/example", query: { date: "2026-08-30" } })).resolves.toEqual({
     ok: true,
   });
   expect(requests.map((request) => request.url)).toEqual([

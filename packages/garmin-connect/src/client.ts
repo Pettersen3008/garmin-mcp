@@ -34,10 +34,7 @@ import { getSleep } from "./features/sleep/get.ts";
 import type { SleepSummary } from "./features/sleep/model.ts";
 import { getTrainingReadiness } from "./features/training/get-readiness.ts";
 import { getTrainingStatus } from "./features/training/get-status.ts";
-import type {
-  TrainingReadiness,
-  TrainingStatus,
-} from "./features/training/model.ts";
+import type { TrainingReadiness, TrainingStatus } from "./features/training/model.ts";
 import {
   createWorkout,
   deleteWorkout,
@@ -54,11 +51,7 @@ import type {
   WorkoutSummary,
 } from "./features/workouts/model.ts";
 import { GarminAuthError } from "./http/errors.ts";
-import {
-  createRequestJson,
-  type DiagnosticEvent,
-  type Fetch,
-} from "./http/request.ts";
+import { createRequestJson, type DiagnosticEvent, type Fetch } from "./http/request.ts";
 import { type LocalDate, parseLocalDate } from "./local-date.ts";
 
 export type GarminClient = {
@@ -76,12 +69,8 @@ export type GarminClient = {
   };
   health: {
     getBloodOxygen(input: { date: LocalDate }): Promise<DailyBloodOxygen>;
-    getBodyBattery(input: {
-      date: LocalDate;
-    }): Promise<DailyBodyBattery | null>;
-    getBodyComposition(input: {
-      date: LocalDate;
-    }): Promise<DailyBodyComposition>;
+    getBodyBattery(input: { date: LocalDate }): Promise<DailyBodyBattery | null>;
+    getBodyComposition(input: { date: LocalDate }): Promise<DailyBodyComposition>;
     getHrv(input: { date: LocalDate }): Promise<DailyHrv | null>;
     getRespiration(input: { date: LocalDate }): Promise<DailyRespiration>;
     getStress(input: { date: LocalDate }): Promise<DailyStress>;
@@ -99,13 +88,15 @@ export type GarminClient = {
     edit(input: { id: string; workout: WorkoutDraft }): Promise<Workout>;
     get(input: { id: string }): Promise<Workout>;
     list(input: { limit: number }): Promise<WorkoutSummary[]>;
-    schedule(input: {
-      workoutId: string;
-      date: LocalDate;
-    }): Promise<WorkoutSchedule>;
+    schedule(input: { workoutId: string; date: LocalDate }): Promise<WorkoutSchedule>;
     unschedule(input: { id: string }): Promise<WorkoutSchedule>;
   };
 };
+
+const dated =
+  <T>(get: (input: { date: LocalDate }) => Promise<T>) =>
+  async (input: { date: LocalDate }) =>
+    get({ date: parseLocalDate(input.date) });
 
 export async function createGarminClient(
   options: {
@@ -155,10 +146,6 @@ export async function createGarminClient(
     await sessionStore.save(latestSession);
     persist = true;
   }
-  const dated =
-    <T>(get: (input: { date: LocalDate }) => Promise<T>) =>
-    async (input: { date: LocalDate }) =>
-      get({ date: parseLocalDate(input.date) });
 
   return {
     activities: {
@@ -176,9 +163,7 @@ export async function createGarminClient(
     health: {
       getBloodOxygen: dated((input) => getDailyBloodOxygen(requestJson, input)),
       getBodyBattery: dated((input) => getDailyBodyBattery(requestJson, input)),
-      getBodyComposition: dated((input) =>
-        getDailyBodyComposition(requestJson, input),
-      ),
+      getBodyComposition: dated((input) => getDailyBodyComposition(requestJson, input)),
       getHrv: dated((input) => getDailyHrv(requestJson, input)),
       getRespiration: dated((input) => getDailyRespiration(requestJson, input)),
       getStress: dated((input) => getDailyStress(requestJson, input)),
@@ -196,8 +181,7 @@ export async function createGarminClient(
       edit: ({ id, workout }) => editWorkout({ requestJson, id, workout }),
       get: ({ id }) => getWorkout({ getJson: requestJson, id }),
       list: ({ limit }) => listWorkouts({ getJson: requestJson, limit }),
-      schedule: ({ workoutId, date }) =>
-        scheduleWorkout({ requestJson, workoutId, date }),
+      schedule: ({ workoutId, date }) => scheduleWorkout({ requestJson, workoutId, date }),
       unschedule: ({ id }) => unscheduleWorkout({ requestJson, id }),
     },
   };

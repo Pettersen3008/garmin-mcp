@@ -19,20 +19,12 @@ type GetRequest = {
 type WriteRequest = {
   path: string;
   query?: Record<string, string>;
-} & (
-  | { method: "POST" | "PUT"; body: unknown }
-  | { method: "DELETE"; body?: never }
-);
+} & ({ method: "POST" | "PUT"; body: unknown } | { method: "DELETE"; body?: never });
 
 export type GetJson = (input: GetRequest) => Promise<unknown>;
-export type RequestJson = (
-  input: GetRequest | WriteRequest,
-) => Promise<unknown>;
+export type RequestJson = (input: GetRequest | WriteRequest) => Promise<unknown>;
 
-export type Fetch = (
-  input: string | URL | Request,
-  init?: RequestInit,
-) => Promise<Response>;
+export type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 export type DiagnosticEvent = {
   kind: "request" | "retry";
@@ -84,16 +76,11 @@ export function createRequestJson(input: {
 
   async function accessToken(forceRefresh: boolean): Promise<string> {
     const nowSeconds = Math.floor(input.now() / 1000);
-    if (
-      !forceRefresh &&
-      session.oauth2.expiresAtEpochSeconds > nowSeconds + 60
-    ) {
+    if (!forceRefresh && session.oauth2.expiresAtEpochSeconds > nowSeconds + 60) {
       return session.oauth2.accessToken;
     }
     if (session.oauth2.refreshTokenExpiresAtEpochSeconds <= nowSeconds) {
-      throw new GarminAuthError(
-        "Garmin session expired. Run bun run auth again",
-      );
+      throw new GarminAuthError("Garmin session expired. Run bun run auth again");
     }
     refreshing ??= refresh().finally(() => {
       refreshing = undefined;

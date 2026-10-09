@@ -1,9 +1,4 @@
-import type {
-  ExecutableWorkoutStep,
-  WorkoutDraft,
-  WorkoutStep,
-  WorkoutTarget,
-} from "./model.ts";
+import type { ExecutableWorkoutStep, WorkoutDraft, WorkoutStep, WorkoutTarget } from "./model.ts";
 
 const sports = {
   running: { sportTypeId: 1, sportTypeKey: "running", displayOrder: 1 },
@@ -101,10 +96,7 @@ function target(value: WorkoutTarget | undefined): Record<string, unknown> {
   }
 }
 
-function executable(
-  step: ExecutableWorkoutStep,
-  order: number,
-): Record<string, unknown> {
+function executable(step: ExecutableWorkoutStep, order: number): Record<string, unknown> {
   const end =
     step.end.kind === "open"
       ? { endCondition: conditions.open }
@@ -185,10 +177,7 @@ function total(input: WorkoutStep[], kind: "time" | "distance"): number | null {
   return result;
 }
 
-export function buildWorkoutPayload(
-  input: WorkoutDraft,
-  id?: string,
-): Record<string, unknown> {
+export function buildWorkoutPayload(input: WorkoutDraft, id?: string): Record<string, unknown> {
   if (input.name.trim().length === 0) {
     throw new RangeError("Workout name must not be empty");
   }

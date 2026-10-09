@@ -16,10 +16,7 @@ const rawSleepSchema = z.object({
     sleepEndTimestampGMT: z.number().nullable().optional(),
     sleepScores: z
       .object({
-        overall: z
-          .object({ value: z.number().nullable().optional() })
-          .nullable()
-          .optional(),
+        overall: z.object({ value: z.number().nullable().optional() }).nullable().optional(),
       })
       .nullable()
       .optional(),
@@ -31,36 +28,22 @@ const rawSleepSchema = z.object({
 export function mapSleep(value: unknown): SleepSummary {
   const result = rawSleepSchema.safeParse(value);
   if (!result.success) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned an invalid sleep summary",
-    );
+    throw new GarminInvalidResponseError("Garmin returned an invalid sleep summary");
   }
   const raw = result.data.dailySleepDTO;
   const sleepScore = raw.sleepScores?.overall?.value;
   return {
     date: parseLocalDate(raw.calendarDate),
-    ...(raw.awakeSleepSeconds == null
-      ? {}
-      : { awakeDurationSeconds: raw.awakeSleepSeconds }),
-    ...(raw.avgSleepHRV == null
-      ? {}
-      : { averageHeartRateVariabilityMs: raw.avgSleepHRV }),
+    ...(raw.awakeSleepSeconds == null ? {} : { awakeDurationSeconds: raw.awakeSleepSeconds }),
+    ...(raw.avgSleepHRV == null ? {} : { averageHeartRateVariabilityMs: raw.avgSleepHRV }),
     ...(raw.avgRespirationValue == null
       ? {}
       : { averageRespirationBreathsPerMinute: raw.avgRespirationValue }),
     ...(raw.avgSpO2 == null ? {} : { averageSpo2Percent: raw.avgSpO2 }),
-    ...(raw.deepSleepSeconds == null
-      ? {}
-      : { deepSleepDurationSeconds: raw.deepSleepSeconds }),
-    ...(raw.lightSleepSeconds == null
-      ? {}
-      : { lightSleepDurationSeconds: raw.lightSleepSeconds }),
-    ...(raw.remSleepSeconds == null
-      ? {}
-      : { remSleepDurationSeconds: raw.remSleepSeconds }),
-    ...(raw.sleepTimeSeconds == null
-      ? {}
-      : { sleepDurationSeconds: raw.sleepTimeSeconds }),
+    ...(raw.deepSleepSeconds == null ? {} : { deepSleepDurationSeconds: raw.deepSleepSeconds }),
+    ...(raw.lightSleepSeconds == null ? {} : { lightSleepDurationSeconds: raw.lightSleepSeconds }),
+    ...(raw.remSleepSeconds == null ? {} : { remSleepDurationSeconds: raw.remSleepSeconds }),
+    ...(raw.sleepTimeSeconds == null ? {} : { sleepDurationSeconds: raw.sleepTimeSeconds }),
     ...(raw.sleepEndTimestampGMT == null
       ? {}
       : { sleepEndEpochMilliseconds: raw.sleepEndTimestampGMT }),

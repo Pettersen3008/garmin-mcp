@@ -1,9 +1,14 @@
 {
   "name": "@pettersen/garmin-mcp",
   "version": "0.1.0",
+  "private": true,
   "description": "MCP server exposing Garmin Connect activity, health, training, and workout tools",
   "license": "MIT",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pettersen3008/garmin-mcp.git",
+    "directory": "packages/garmin-mcp"
+  },
   "type": "module",
   "scripts": {
     "start": "bun src/main.ts"
@@ -13,12 +18,7 @@
     "@pettersen/garmin-connect": "workspace:*",
     "zod": "4.6.5"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Pettersen3008/garmin-mcp.git",
-    "directory": "packages/garmin-mcp"
-  },
   "engines": {
-    "bun": ">=1.4.0"
+    "bun": ">=1.4.2"
   }
 }

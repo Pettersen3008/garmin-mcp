@@ -65,9 +65,7 @@ export function mapActivity(input: unknown): Activity {
 
 export function mapActivities(input: unknown): Activity[] {
   if (!Array.isArray(input)) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned an invalid activity list",
-    );
+    throw new GarminInvalidResponseError("Garmin returned an invalid activity list");
   }
   return input.map(mapActivity);
 }

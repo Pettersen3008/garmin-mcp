@@ -22,27 +22,21 @@ const heartRateSchema = z.object({
 export function mapDailyHeartRate(value: unknown): DailyHeartRate {
   const result = heartRateSchema.safeParse(value);
   if (!result.success) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned invalid daily heart-rate data",
-    );
+    throw new GarminInvalidResponseError("Garmin returned invalid daily heart-rate data");
   }
   const raw = result.data;
   return {
     date: parseLocalDate(raw.calendarDate),
     ...(raw.minHeartRate == null ? {} : { minBpm: raw.minHeartRate }),
     ...(raw.maxHeartRate == null ? {} : { maxBpm: raw.maxHeartRate }),
-    ...(raw.restingHeartRate == null
-      ? {}
-      : { restingBpm: raw.restingHeartRate }),
+    ...(raw.restingHeartRate == null ? {} : { restingBpm: raw.restingHeartRate }),
     ...(raw.lastSevenDaysAvgRestingHeartRate == null
       ? {}
       : {
           sevenDayAverageRestingBpm: raw.lastSevenDaysAvgRestingHeartRate,
         }),
     samples: (raw.heartRateValues ?? []).flatMap(([timestamp, bpm]) =>
-      bpm === null
-        ? []
-        : [{ recordedAt: new Date(timestamp).toISOString(), bpm }],
+      bpm === null ? [] : [{ recordedAt: new Date(timestamp).toISOString(), bpm }],
     ),
   };
 }

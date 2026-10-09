@@ -41,12 +41,7 @@ const draft: WorkoutDraft = {
 
 async function fixture(): Promise<Record<string, unknown>> {
   const value: unknown = await Bun.file(fixtureUrl).json();
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    Array.isArray(value) ||
-    !("list" in value)
-  ) {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || !("list" in value)) {
     throw new TypeError("Invalid workout fixture");
   }
   return value;
@@ -128,14 +123,19 @@ describe("workouts", () => {
 
   it("given a multi-segment Garmin workout, when mapping, then rejects it instead of flattening", async () => {
     const { detail } = await fixture();
-    if (typeof detail !== "object" || detail === null) {
+    if (
+      typeof detail !== "object" ||
+      detail === null ||
+      !("workoutSegments" in detail) ||
+      !Array.isArray(detail.workoutSegments)
+    ) {
       throw new TypeError("Invalid workout fixture");
     }
-    const segments = (detail as { workoutSegments: unknown[] }).workoutSegments;
+    const segments: unknown[] = detail.workoutSegments;
 
-    expect(() =>
-      mapWorkout({ ...detail, workoutSegments: [...segments, ...segments] }),
-    ).toThrow("more than one segment");
+    expect(() => mapWorkout({ ...detail, workoutSegments: [...segments, ...segments] })).toThrow(
+      "more than one segment",
+    );
   });
 
   it("given workout operations, when called, then uses Garmin's contracts and reads stored writes", async () => {
@@ -146,10 +146,7 @@ describe("workouts", () => {
       if (request.path.includes("/schedule/")) {
         return data.schedule;
       }
-      if (
-        request.path === "/workout-service/workout" &&
-        request.method === "POST"
-      ) {
+      if (request.path === "/workout-service/workout" && request.method === "POST") {
         return Array.isArray(data.list) ? data.list[0] : undefined;
       }
       if (request.method === undefined && request.path.includes("/workout/")) {

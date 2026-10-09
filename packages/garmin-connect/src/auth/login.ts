@@ -31,9 +31,7 @@ export function parseGarminTicket(value: string): string {
     url.pathname !== "/sso/embed" ||
     !ticket?.startsWith("ST-")
   ) {
-    throw new GarminAuthError(
-      "The Garmin redirect URL does not contain a valid ticket",
-    );
+    throw new GarminAuthError("The Garmin redirect URL does not contain a valid ticket");
   }
   return ticket;
 }
@@ -44,13 +42,7 @@ export async function runInteractiveLogin(): Promise<void> {
     process.platform === "darwin"
       ? ["/usr/bin/open", signInUrl.toString()]
       : process.platform === "win32"
-        ? [
-            "powershell.exe",
-            "-NoProfile",
-            "-Command",
-            "Start-Process",
-            signInUrl.toString(),
-          ]
+        ? ["powershell.exe", "-NoProfile", "-Command", "Start-Process", signInUrl.toString()]
         : ["xdg-open", signInUrl.toString()];
   let opened = false;
   try {
@@ -63,12 +55,10 @@ export async function runInteractiveLogin(): Promise<void> {
     // No browser opener (for example headless Linux); the URL below still works.
   }
   if (!opened) {
-    console.error(`Open this URL in a browser:\n${signInUrl}`);
+    console.error(`Open this URL in a browser:\n${signInUrl.href}`);
   }
 
-  console.error(
-    "Sign in to Garmin, then copy the final sso.garmin.com/sso/embed URL.",
-  );
+  console.error("Sign in to Garmin, then copy the final sso.garmin.com/sso/embed URL.");
   const terminal = createInterface({
     input: process.stdin,
     output: process.stderr,

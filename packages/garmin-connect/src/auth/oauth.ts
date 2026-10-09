@@ -1,17 +1,11 @@
 import { Buffer } from "node:buffer";
 import { z } from "zod";
-import {
-  GarminAuthError,
-  GarminInvalidResponseError,
-  GarminNetworkError,
-} from "../http/errors.ts";
+import { GarminAuthError, GarminInvalidResponseError, GarminNetworkError } from "../http/errors.ts";
 import type { Fetch } from "../http/request.ts";
 import type { GarminSession, OAuth2Token } from "./session.ts";
 
 const clientId = "GARMIN_CONNECT_MOBILE_ANDROID_DI_2025Q2";
-const tokenUrl = new URL(
-  "https://diauth.garmin.com/di-oauth2-service/oauth/token",
-);
+const tokenUrl = new URL("https://diauth.garmin.com/di-oauth2-service/oauth/token");
 
 const oauth2ResponseSchema = z.object({
   access_token: z.string().min(1),
@@ -22,9 +16,7 @@ const oauth2ResponseSchema = z.object({
   token_type: z.string().min(1),
 });
 
-export function createNativeHeaders(
-  extra: Record<string, string> = {},
-): Record<string, string> {
+export function createNativeHeaders(extra: Record<string, string> = {}): Record<string, string> {
   return {
     "User-Agent": "GCM-Android-5.23",
     "X-Garmin-User-Agent":
@@ -42,20 +34,14 @@ function basicAuth(value: string): string {
   return `Basic ${Buffer.from(`${value}:`).toString("base64")}`;
 }
 
-async function fetchOrThrow(
-  fetchFn: Fetch,
-  url: URL,
-  init: RequestInit,
-): Promise<Response> {
+async function fetchOrThrow(fetchFn: Fetch, url: URL, init: RequestInit): Promise<Response> {
   try {
     const response = await fetchFn(url, {
       ...init,
       signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) {
-      throw new GarminAuthError(
-        `Garmin authentication failed with HTTP ${response.status}`,
-      );
+      throw new GarminAuthError(`Garmin authentication failed with HTTP ${response.status}`);
     }
     return response;
   } catch (error) {
@@ -68,32 +54,23 @@ async function fetchOrThrow(
   }
 }
 
-async function parseOAuth2(
-  response: Response,
-  now: () => number,
-): Promise<OAuth2Token> {
+async function parseOAuth2(response: Response, now: () => number): Promise<OAuth2Token> {
   let value: unknown;
   try {
     value = await response.json();
   } catch (error) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned invalid OAuth 2 JSON",
-      { cause: error },
-    );
+    throw new GarminInvalidResponseError("Garmin returned invalid OAuth 2 JSON", { cause: error });
   }
   const parsed = oauth2ResponseSchema.safeParse(value);
   if (!parsed.success) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned an invalid OAuth 2 token",
-    );
+    throw new GarminInvalidResponseError("Garmin returned an invalid OAuth 2 token");
   }
   const nowSeconds = Math.floor(now() / 1000);
   return {
     accessToken: parsed.data.access_token,
     expiresAtEpochSeconds: nowSeconds + parsed.data.expires_in,
     refreshToken: parsed.data.refresh_token,
-    refreshTokenExpiresAtEpochSeconds:
-      nowSeconds + parsed.data.refresh_token_expires_in,
+    refreshTokenExpiresAtEpochSeconds: nowSeconds + parsed.data.refresh_token_expires_in,
     scope: parsed.data.scope,
     tokenType: parsed.data.token_type,
   };
@@ -130,8 +107,7 @@ export async function exchangeTicket(input: {
   const body = new URLSearchParams({
     client_id: clientId,
     service_ticket: ticket,
-    grant_type:
-      "https://connectapi.garmin.com/di-oauth2-service/oauth/grant/service_ticket",
+    grant_type: "https://connectapi.garmin.com/di-oauth2-service/oauth/grant/service_ticket",
     service_url: "https://sso.garmin.com/sso/embed",
   });
   return {

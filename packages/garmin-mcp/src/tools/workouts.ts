@@ -5,9 +5,9 @@ import { runTool } from "../mcp-result.ts";
 import {
   approval,
   confirm,
-  date,
+  localDate,
   destructive,
-  garminId as id,
+  garminId,
   readOnly,
   write,
 } from "../tool-schemas.ts";
@@ -64,7 +64,7 @@ const executableStep = z.object({
   ]),
   target: target.optional(),
 });
-const workout = z.object({
+const workoutDraft = z.object({
   name: z.string().trim().min(1),
   sport: z.enum(["running", "cycling", "swimming"]),
   description: z.string().optional(),
@@ -82,10 +82,7 @@ const workout = z.object({
     .min(1),
 });
 
-export function registerWorkoutTools(
-  server: McpServer,
-  garmin: GarminClient,
-): void {
+export function registerWorkoutTools(server: McpServer, garmin: GarminClient): void {
   server.registerTool(
     "list_workouts",
     {
@@ -106,27 +103,25 @@ export function registerWorkoutTools(
       annotations: readOnly,
       description:
         "Get one Garmin workout and its structured steps, identified by id; get ids from list_workouts.",
-      inputSchema: z.object({ id }),
+      inputSchema: z.object({ id: garminId }),
     },
-    ({ id }) =>
-      runTool(async () => ({ workout: await garmin.workouts.get({ id }) })),
+    ({ id }) => runTool(async () => ({ workout: await garmin.workouts.get({ id }) })),
   );
   server.registerTool(
     "create_workout",
     {
       annotations: { ...write, idempotentHint: false },
       description: `Create a Garmin workout with the supplied name, sport, description, and complete step list, then return Garmin's stored workout. A retry can create a duplicate. ${approval}`,
-      inputSchema: z.object({ confirm, workout }),
+      inputSchema: z.object({ confirm, workout: workoutDraft }),
     },
-    ({ workout }) =>
-      runTool(async () => ({ workout: await garmin.workouts.create(workout) })),
+    ({ workout }) => runTool(async () => ({ workout: await garmin.workouts.create(workout) })),
   );
   server.registerTool(
     "edit_workout",
     {
       annotations: destructive,
       description: `Replace the name, sport, description, and complete step list of the Garmin workout identified by id; get ids from list_workouts. Returns Garmin's stored workout. ${approval}`,
-      inputSchema: z.object({ confirm, id, workout }),
+      inputSchema: z.object({ confirm, id: garminId, workout: workoutDraft }),
     },
     ({ id, workout }) =>
       runTool(async () => ({
@@ -138,7 +133,7 @@ export function registerWorkoutTools(
     {
       annotations: destructive,
       description: `Permanently delete the Garmin workout identified by id; get ids from list_workouts. Returns the workout captured before deletion. ${approval}`,
-      inputSchema: z.object({ confirm, id }),
+      inputSchema: z.object({ confirm, id: garminId }),
     },
     ({ id }) =>
       runTool(async () => ({
@@ -150,7 +145,7 @@ export function registerWorkoutTools(
     {
       annotations: { ...write, idempotentHint: false },
       description: `Schedule the Garmin workout identified by workoutId on date; get ids from list_workouts. Returns Garmin's stored schedule, including its id. A retry can create a duplicate schedule. ${approval}`,
-      inputSchema: z.object({ confirm, date, workoutId: id }),
+      inputSchema: z.object({ confirm, date: localDate, workoutId: garminId }),
     },
     ({ date, workoutId }) =>
       runTool(async () => ({
@@ -165,7 +160,7 @@ export function registerWorkoutTools(
     {
       annotations: destructive,
       description: `Remove the Garmin workout schedule identified by id (returned by schedule_workout) without deleting its workout. Returns the schedule captured before removal. ${approval}`,
-      inputSchema: z.object({ confirm, id }),
+      inputSchema: z.object({ confirm, id: garminId }),
     },
     ({ id }) =>
       runTool(async () => ({

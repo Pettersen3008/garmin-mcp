@@ -1,12 +1,7 @@
 import type { LocalDate } from "../../local-date.ts";
 
 export type WorkoutSport = "running" | "cycling" | "swimming";
-export type WorkoutStepKind =
-  | "warmup"
-  | "interval"
-  | "recovery"
-  | "cooldown"
-  | "rest";
+export type WorkoutStepKind = "warmup" | "interval" | "recovery" | "cooldown" | "rest";
 
 export type WorkoutTarget =
   | { kind: "heartRateZone"; zone: number }
@@ -22,10 +17,7 @@ export type WorkoutTarget =
 export type ExecutableWorkoutStep = {
   kind: WorkoutStepKind;
   description?: string | undefined;
-  end:
-    | { kind: "time"; seconds: number }
-    | { kind: "distance"; meters: number }
-    | { kind: "open" };
+  end: { kind: "time"; seconds: number } | { kind: "distance"; meters: number } | { kind: "open" };
   target?: WorkoutTarget | undefined;
 };
 

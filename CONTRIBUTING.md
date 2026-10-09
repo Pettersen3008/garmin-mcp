@@ -1,6 +1,6 @@
 # Contributing
 
-Run `bun run verify` before you open a pull request. It runs a frozen install, Biome, the TypeScript check, the offline tests, and `bun audit`.
+Run `bun run verify` before you open a pull request. It runs a frozen install, oxfmt, type-aware oxlint, the TypeScript check, the offline tests, and `bun audit`.
 
 Never commit Garmin credentials, service tickets, OAuth tokens, or personal data. Fixtures must be anonymized or synthetic.
 

@@ -2,18 +2,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type GarminClient, parseLocalDate } from "@pettersen/garmin-connect";
 import { z } from "zod";
 import { runTool } from "../mcp-result.ts";
-import {
-  approval,
-  confirm,
-  date,
-  destructive,
-  garminId,
-  readOnly,
-} from "../tool-schemas.ts";
+import { approval, confirm, localDate, destructive, garminId, readOnly } from "../tool-schemas.ts";
 
 const listInput = z
   .object({
-    from: date.optional().describe("First local calendar date, YYYY-MM-DD"),
+    from: localDate.optional().describe("First local calendar date, YYYY-MM-DD"),
     limit: z.number().int().min(1).max(100).default(20),
     start: z
       .number()
@@ -21,7 +14,7 @@ const listInput = z
       .min(0)
       .default(0)
       .describe("Number of newest activities to skip, for paging"),
-    to: date.optional().describe("Last local calendar date, YYYY-MM-DD"),
+    to: localDate.optional().describe("Last local calendar date, YYYY-MM-DD"),
   })
   .refine((input) => input.to === undefined || input.from !== undefined, {
     message: "from is required when to is present",
@@ -33,21 +26,16 @@ const editInput = z
     id: garminId,
     name: z.string().trim().min(1).optional(),
   })
-  .refine(
-    ({ description, name }) => description !== undefined || name !== undefined,
-    { message: "name or description is required" },
-  );
+  .refine(({ description, name }) => description !== undefined || name !== undefined, {
+    message: "name or description is required",
+  });
 
-export function registerActivityTools(
-  server: McpServer,
-  garmin: GarminClient,
-): void {
+export function registerActivityTools(server: McpServer, garmin: GarminClient): void {
   server.registerTool(
     "list_activities",
     {
       annotations: readOnly,
-      description:
-        "List Garmin activities, newest first, optionally within a calendar date range.",
+      description: "List Garmin activities, newest first, optionally within a calendar date range.",
       inputSchema: listInput,
     },
     ({ from, limit, start, to }) =>
@@ -72,8 +60,7 @@ export function registerActivityTools(
         "Get one Garmin activity summary identified by id; get ids from list_activities.",
       inputSchema: z.object({ id: garminId }),
     },
-    ({ id }) =>
-      runTool(async () => ({ activity: await garmin.activities.get({ id }) })),
+    ({ id }) => runTool(async () => ({ activity: await garmin.activities.get({ id }) })),
   );
   server.registerTool(
     "edit_activity",

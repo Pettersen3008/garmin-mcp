@@ -23,10 +23,7 @@ import { getSleep } from "../src/features/sleep/get.ts";
 import { mapSleep } from "../src/features/sleep/map.ts";
 import { getTrainingReadiness } from "../src/features/training/get-readiness.ts";
 import { getTrainingStatus } from "../src/features/training/get-status.ts";
-import {
-  mapTrainingReadiness,
-  mapTrainingStatus,
-} from "../src/features/training/map.ts";
+import { mapTrainingReadiness, mapTrainingStatus } from "../src/features/training/map.ts";
 import type { GetJson } from "../src/http/request.ts";
 import { parseLocalDate } from "../src/local-date.ts";
 
@@ -58,9 +55,7 @@ describe("health feature mappers", () => {
       lastNightAverageMilliseconds: 51,
       status: "BALANCED",
     });
-    expect(hrv?.samples.map(({ milliseconds }) => milliseconds)).toEqual([
-      47, 54,
-    ]);
+    expect(hrv?.samples.map(({ milliseconds }) => milliseconds)).toEqual([47, 54]);
     const stress = mapDailyStress(await fixture("stress"));
     expect(stress).toMatchObject({
       date: parseLocalDate("2026-08-30"),
@@ -72,17 +67,13 @@ describe("health feature mappers", () => {
       date: parseLocalDate("2026-08-30"),
       charged: 72,
     });
-    expect(bodyBattery?.samples.map(({ level }) => level)).toEqual([
-      18, 45, 79,
-    ]);
+    expect(bodyBattery?.samples.map(({ level }) => level)).toEqual([18, 45, 79]);
     const respiration = mapDailyRespiration(await fixture("respiration"));
     expect(respiration).toMatchObject({
       date: parseLocalDate("2026-08-30"),
       averageSleepBreathsPerMinute: 12,
     });
-    expect(
-      respiration.samples.map(({ breathsPerMinute }) => breathsPerMinute),
-    ).toEqual([12.5, 16]);
+    expect(respiration.samples.map(({ breathsPerMinute }) => breathsPerMinute)).toEqual([12.5, 16]);
     const bloodOxygen = mapDailyBloodOxygen(await fixture("blood-oxygen"));
     expect(bloodOxygen).toMatchObject({
       date: parseLocalDate("2026-08-30"),
@@ -90,9 +81,7 @@ describe("health feature mappers", () => {
       sevenDayAveragePercent: 95.5,
     });
     expect(bloodOxygen.samples.map(({ percent }) => percent)).toEqual([95, 96]);
-    expect(
-      mapDailyBodyComposition("2026-08-30", await fixture("body-composition")),
-    ).toMatchObject({
+    expect(mapDailyBodyComposition("2026-08-30", await fixture("body-composition"))).toMatchObject({
       date: parseLocalDate("2026-08-30"),
       measurements: [
         {
@@ -112,9 +101,7 @@ describe("health feature mappers", () => {
       date: "2026-08-30",
       loadRatio: 1.2,
     });
-    expect(
-      mapTrainingReadiness(await fixture("training-readiness")),
-    ).toMatchObject({
+    expect(mapTrainingReadiness(await fixture("training-readiness"))).toMatchObject({
       date: "2026-08-30",
       score: 82,
     });
@@ -122,16 +109,11 @@ describe("health feature mappers", () => {
 
   it("given a day without samples, when mapping, then returns empty samples and no training status", () => {
     const date = "2026-08-30";
+    expect(mapDailyStress({ calendarDate: date, stressValuesArray: null }).samples).toEqual([]);
     expect(
-      mapDailyStress({ calendarDate: date, stressValuesArray: null }).samples,
+      mapDailyRespiration({ calendarDate: date, respirationValuesArray: null }).samples,
     ).toEqual([]);
-    expect(
-      mapDailyRespiration({ calendarDate: date, respirationValuesArray: null })
-        .samples,
-    ).toEqual([]);
-    expect(
-      mapDailyHeartRate({ calendarDate: date, heartRateValues: null }).samples,
-    ).toEqual([]);
+    expect(mapDailyHeartRate({ calendarDate: date, heartRateValues: null }).samples).toEqual([]);
     expect(mapTrainingStatus({ mostRecentTrainingStatus: null })).toBeNull();
   });
 });

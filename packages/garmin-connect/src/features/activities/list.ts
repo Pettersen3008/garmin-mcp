@@ -23,11 +23,7 @@ export async function listActivities({
   if (input.to !== undefined) {
     parseLocalDate(input.to);
   }
-  if (
-    input.from !== undefined &&
-    input.to !== undefined &&
-    input.to < input.from
-  ) {
+  if (input.from !== undefined && input.to !== undefined && input.to < input.from) {
     throw new RangeError("Activity end date must not precede its start date");
   }
 

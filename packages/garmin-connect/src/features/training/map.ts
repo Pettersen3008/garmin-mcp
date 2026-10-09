@@ -21,9 +21,7 @@ const statusValueSchema = z.object({
 const statusSchema = z.object({
   mostRecentTrainingStatus: z
     .object({
-      latestTrainingStatusData: z
-        .record(z.string(), statusValueSchema)
-        .nullish(),
+      latestTrainingStatusData: z.record(z.string(), statusValueSchema).nullish(),
     })
     .nullish(),
 });
@@ -41,16 +39,12 @@ const readinessValueSchema = z.object({
 export function mapTrainingStatus(value: unknown): TrainingStatus | null {
   const result = statusSchema.safeParse(value);
   if (!result.success) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned an invalid training status",
-    );
+    throw new GarminInvalidResponseError("Garmin returned an invalid training status");
   }
   const statuses = Object.values(
     result.data.mostRecentTrainingStatus?.latestTrainingStatusData ?? {},
   );
-  const raw =
-    statuses.find(({ primaryTrainingDevice }) => primaryTrainingDevice) ??
-    statuses[0];
+  const raw = statuses.find(({ primaryTrainingDevice }) => primaryTrainingDevice) ?? statuses[0];
   if (!raw) {
     return null;
   }
@@ -66,18 +60,14 @@ export function mapTrainingStatus(value: unknown): TrainingStatus | null {
       ? {}
       : { loadRatio: raw.acuteTrainingLoadDTO.dailyAcuteChronicWorkloadRatio }),
     ...(raw.trainingStatus == null ? {} : { statusCode: raw.trainingStatus }),
-    ...(raw.sinceDate == null
-      ? {}
-      : { statusSince: parseLocalDate(raw.sinceDate) }),
+    ...(raw.sinceDate == null ? {} : { statusSince: parseLocalDate(raw.sinceDate) }),
   };
 }
 
 export function mapTrainingReadiness(value: unknown): TrainingReadiness | null {
   const result = z.array(readinessValueSchema).safeParse(value);
   if (!result.success) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned invalid training readiness",
-    );
+    throw new GarminInvalidResponseError("Garmin returned invalid training readiness");
   }
   const raw = result.data.toSorted((left, right) =>
     right.timestamp.localeCompare(left.timestamp),
@@ -90,9 +80,7 @@ export function mapTrainingReadiness(value: unknown): TrainingReadiness | null {
     timestamp: raw.timestamp,
     ...(raw.feedbackShort == null ? {} : { feedback: raw.feedbackShort }),
     ...(raw.level == null ? {} : { level: raw.level }),
-    ...(raw.recoveryTime == null
-      ? {}
-      : { recoveryTimeMinutes: raw.recoveryTime }),
+    ...(raw.recoveryTime == null ? {} : { recoveryTimeMinutes: raw.recoveryTime }),
     ...(raw.score == null ? {} : { score: raw.score }),
     ...(raw.sleepScore == null ? {} : { sleepScore: raw.sleepScore }),
   };

@@ -98,9 +98,7 @@ const garmin: GarminClient = {
         name: workout.name,
         sport: workout.sport,
         steps: workout.steps,
-        ...(workout.description === undefined
-          ? {}
-          : { description: workout.description }),
+        ...(workout.description === undefined ? {} : { description: workout.description }),
       };
     },
     async delete({ id }) {
@@ -112,9 +110,7 @@ const garmin: GarminClient = {
         name: workout.name,
         sport: workout.sport,
         steps: workout.steps,
-        ...(workout.description === undefined
-          ? {}
-          : { description: workout.description }),
+        ...(workout.description === undefined ? {} : { description: workout.description }),
       };
     },
     async get({ id }) {
@@ -137,18 +133,14 @@ const garmin: GarminClient = {
 };
 
 it("given the fixture SDK, when calling the MCP server, then registered tools return structured content", async () => {
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const server = createServer(garmin);
   const client = new Client({ name: "test-client", version: "0.0.0" });
-  await Promise.all([
-    server.connect(serverTransport),
-    client.connect(clientTransport),
-  ]);
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
 
   try {
     const tools = await client.listTools();
-    expect(tools.tools.map(({ name }) => name).sort()).toEqual(
+    expect(tools.tools.map(({ name }) => name).toSorted()).toEqual(
       [
         "get_activity",
         "get_daily_summary",
@@ -172,7 +164,7 @@ it("given the fixture SDK, when calling the MCP server, then registered tools re
         "list_workouts",
         "schedule_workout",
         "unschedule_workout",
-      ].sort(),
+      ].toSorted(),
     );
     const calls = await Promise.all([
       client.callTool({ name: "list_activities", arguments: { limit: 10 } }),
@@ -272,9 +264,7 @@ it("given the fixture SDK, when calling the MCP server, then registered tools re
       }),
     ]);
     expect(calls.filter(({ isError }) => isError)).toEqual([]);
-    expect(
-      calls.every(({ structuredContent }) => structuredContent !== undefined),
-    ).toBe(true);
+    expect(calls.every(({ structuredContent }) => structuredContent !== undefined)).toBe(true);
   } finally {
     await Promise.all([client.close(), server.close()]);
   }
@@ -282,8 +272,7 @@ it("given the fixture SDK, when calling the MCP server, then registered tools re
 
 it("given a write tool call without confirm, when calling it, then rejects before reaching Garmin", async () => {
   let deleted = false;
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const server = createServer({
     ...garmin,
     activities: {
@@ -295,10 +284,7 @@ it("given a write tool call without confirm, when calling it, then rejects befor
     },
   });
   const client = new Client({ name: "test-client", version: "0.0.0" });
-  await Promise.all([
-    server.connect(serverTransport),
-    client.connect(clientTransport),
-  ]);
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
 
   try {
     const result = await client.callTool({
@@ -313,8 +299,9 @@ it("given a write tool call without confirm, when calling it, then rejects befor
   }
 });
 
+const code = (error: unknown) => failure(error).structuredContent.error.code;
+
 it("given SDK errors, when converting to a tool result, then maps each class to its code", () => {
-  const code = (error: unknown) => failure(error).structuredContent.error.code;
   const logged = console.error;
   console.error = () => {};
   try {
@@ -325,14 +312,7 @@ it("given SDK errors, when converting to a tool result, then maps each class to 
       code(new GarminHttpError(503)),
       code(new RangeError("bad date")),
       code(new Error("secret detail")),
-    ]).toEqual([
-      "auth",
-      "not_found",
-      "invalid_request",
-      "upstream",
-      "invalid_input",
-      "internal",
-    ]);
+    ]).toEqual(["auth", "not_found", "invalid_request", "upstream", "invalid_input", "internal"]);
   } finally {
     console.error = logged;
   }

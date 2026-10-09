@@ -69,16 +69,10 @@ const scheduleSchema = z.object({
 });
 
 function invalid(field: string): never {
-  throw new GarminInvalidResponseError(
-    `Garmin workout response has invalid or missing ${field}`,
-  );
+  throw new GarminInvalidResponseError(`Garmin workout response has invalid or missing ${field}`);
 }
 
-function parse<T extends z.ZodType>(
-  schema: T,
-  value: unknown,
-  field: string,
-): z.output<T> {
+function parse<T extends z.ZodType>(schema: T, value: unknown, field: string): z.output<T> {
   const result = schema.safeParse(value);
   return result.success ? result.data : invalid(field);
 }
@@ -98,21 +92,19 @@ function summary(raw: z.output<typeof summarySchema>): WorkoutSummary {
   };
 }
 
-function target(
-  step: z.output<typeof executableSchema>,
-): WorkoutTarget | undefined {
-  const kind = step.targetType?.workoutTargetTypeKey;
+function target(raw: z.output<typeof executableSchema>): WorkoutTarget | undefined {
+  const kind = raw.targetType?.workoutTargetTypeKey;
   if (kind == null || kind === "no.target") {
     return undefined;
   }
-  if (kind === "heart.rate.zone" && step.zoneNumber != null) {
-    return { kind: "heartRateZone", zone: step.zoneNumber };
+  if (kind === "heart.rate.zone" && raw.zoneNumber != null) {
+    return { kind: "heartRateZone", zone: raw.zoneNumber };
   }
-  const first = step.targetValueOne ?? invalid("targetValueOne");
-  if (kind === "heart.rate.zone" && step.targetValueTwo == null) {
+  const first = raw.targetValueOne ?? invalid("targetValueOne");
+  if (kind === "heart.rate.zone" && raw.targetValueTwo == null) {
     return { kind: "heartRateZone", zone: first };
   }
-  const upper = step.targetValueTwo ?? invalid("targetValueTwo");
+  const upper = raw.targetValueTwo ?? invalid("targetValueTwo");
   switch (kind) {
     case "heart.rate.zone":
       return { kind: "heartRate", minBpm: first, maxBpm: upper };
@@ -137,36 +129,30 @@ function target(
   }
 }
 
-function executable(
-  step: z.output<typeof executableSchema>,
-): ExecutableWorkoutStep {
-  const condition = step.endCondition.conditionTypeKey;
+function executable(raw: z.output<typeof executableSchema>): ExecutableWorkoutStep {
+  const condition = raw.endCondition.conditionTypeKey;
   const end: ExecutableWorkoutStep["end"] =
     condition === "lap.button"
       ? { kind: "open" }
       : condition === "time"
         ? {
             kind: "time",
-            seconds: step.endConditionValue ?? invalid("endConditionValue"),
+            seconds: raw.endConditionValue ?? invalid("endConditionValue"),
           }
         : {
             kind: "distance",
-            meters: step.endConditionValue ?? invalid("endConditionValue"),
+            meters: raw.endConditionValue ?? invalid("endConditionValue"),
           };
-  const stepTarget = target(step);
+  const stepTarget = target(raw);
   return {
-    kind: step.stepType.stepTypeKey,
+    kind: raw.stepType.stepTypeKey,
     end,
-    ...(step.description === undefined
-      ? {}
-      : { description: step.description }),
+    ...(raw.description === undefined ? {} : { description: raw.description }),
     ...(stepTarget === undefined ? {} : { target: stepTarget }),
   };
 }
 
-function step(
-  raw: z.output<typeof repeatSchema> | z.output<typeof executableSchema>,
-): WorkoutStep {
+function step(raw: z.output<typeof repeatSchema> | z.output<typeof executableSchema>): WorkoutStep {
   if (!("numberOfIterations" in raw)) {
     return executable(raw);
   }
@@ -179,8 +165,7 @@ function step(
 }
 
 export function mapWorkoutId(input: unknown): string {
-  return parse(summarySchema.pick({ workoutId: true }), input, "workoutId")
-    .workoutId;
+  return parse(summarySchema.pick({ workoutId: true }), input, "workoutId").workoutId;
 }
 
 export function mapWorkoutScheduleId(input: unknown): string {

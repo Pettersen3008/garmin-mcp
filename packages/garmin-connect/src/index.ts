@@ -21,15 +21,9 @@ export type {
   RespirationSample,
   StressSample,
 } from "./features/health-history/model.ts";
-export type {
-  DailyHeartRate,
-  HeartRateSample,
-} from "./features/heart-rate/model.ts";
+export type { DailyHeartRate, HeartRateSample } from "./features/heart-rate/model.ts";
 export type { SleepSummary } from "./features/sleep/model.ts";
-export type {
-  TrainingReadiness,
-  TrainingStatus,
-} from "./features/training/model.ts";
+export type { TrainingReadiness, TrainingStatus } from "./features/training/model.ts";
 export type {
   ExecutableWorkoutStep,
   Workout,

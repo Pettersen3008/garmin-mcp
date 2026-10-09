@@ -22,9 +22,7 @@ export async function editActivity({
     body: {
       activityId: input.id,
       ...(input.name === undefined ? {} : { activityName: input.name }),
-      ...(input.description === undefined
-        ? {}
-        : { description: input.description }),
+      ...(input.description === undefined ? {} : { description: input.description }),
     },
     method: "PUT",
     path: `/activity-service/activity/${input.id}`,

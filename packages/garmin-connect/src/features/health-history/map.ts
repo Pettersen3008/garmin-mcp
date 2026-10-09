@@ -10,11 +10,7 @@ import type {
   DailyStress,
 } from "./model.ts";
 
-const epochMilliseconds = z
-  .number()
-  .int()
-  .nonnegative()
-  .max(8_640_000_000_000_000);
+const epochMilliseconds = z.number().int().nonnegative().max(8_640_000_000_000_000);
 const measurement = z.number().nullable().optional();
 
 function invalid(name: string): GarminInvalidResponseError {
@@ -56,12 +52,8 @@ export function mapDailyHrv(value: unknown): DailyHrv | null {
   const baseline = summary.baseline;
   return {
     date: parseLocalDate(summary.calendarDate),
-    ...(summary.weeklyAvg == null
-      ? {}
-      : { weeklyAverageMilliseconds: summary.weeklyAvg }),
-    ...(summary.lastNightAvg == null
-      ? {}
-      : { lastNightAverageMilliseconds: summary.lastNightAvg }),
+    ...(summary.weeklyAvg == null ? {} : { weeklyAverageMilliseconds: summary.weeklyAvg }),
+    ...(summary.lastNightAvg == null ? {} : { lastNightAverageMilliseconds: summary.lastNightAvg }),
     ...(summary.lastNight5MinHigh == null
       ? {}
       : { lastNightFiveMinuteHighMilliseconds: summary.lastNight5MinHigh }),
@@ -70,9 +62,7 @@ export function mapDailyHrv(value: unknown): DailyHrv | null {
       ? {}
       : {
           baseline: {
-            ...(baseline.lowUpper == null
-              ? {}
-              : { lowUpperMilliseconds: baseline.lowUpper }),
+            ...(baseline.lowUpper == null ? {} : { lowUpperMilliseconds: baseline.lowUpper }),
             ...(baseline.balancedLow == null
               ? {}
               : { balancedLowMilliseconds: baseline.balancedLow }),
@@ -92,9 +82,7 @@ const stressSchema = z.object({
   calendarDate: z.string(),
   avgStressLevel: measurement,
   maxStressLevel: measurement,
-  stressValuesArray: z
-    .array(z.tuple([epochMilliseconds, z.number().int()]))
-    .nullish(),
+  stressValuesArray: z.array(z.tuple([epochMilliseconds, z.number().int()])).nullish(),
 });
 
 export function mapDailyStress(value: unknown): DailyStress {
@@ -106,9 +94,7 @@ export function mapDailyStress(value: unknown): DailyStress {
     ...(raw.avgStressLevel == null ? {} : { averageLevel: raw.avgStressLevel }),
     ...(raw.maxStressLevel == null ? {} : { maximumLevel: raw.maxStressLevel }),
     samples: (raw.stressValuesArray ?? []).flatMap(([timestamp, level]) =>
-      level < 0
-        ? []
-        : [{ recordedAt: new Date(timestamp).toISOString(), level }],
+      level < 0 ? [] : [{ recordedAt: new Date(timestamp).toISOString(), level }],
     ),
   };
 }
@@ -147,9 +133,7 @@ const respirationSchema = z.object({
   highestRespirationValue: measurement,
   avgWakingRespirationValue: measurement,
   avgSleepRespirationValue: measurement,
-  respirationValuesArray: z
-    .array(z.tuple([epochMilliseconds, z.number()]))
-    .nullish(),
+  respirationValuesArray: z.array(z.tuple([epochMilliseconds, z.number()])).nullish(),
 });
 
 export function mapDailyRespiration(value: unknown): DailyRespiration {
@@ -170,16 +154,15 @@ export function mapDailyRespiration(value: unknown): DailyRespiration {
     ...(raw.avgSleepRespirationValue == null
       ? {}
       : { averageSleepBreathsPerMinute: raw.avgSleepRespirationValue }),
-    samples: (raw.respirationValuesArray ?? []).flatMap(
-      ([timestamp, breathsPerMinute]) =>
-        breathsPerMinute < 0
-          ? []
-          : [
-              {
-                recordedAt: new Date(timestamp).toISOString(),
-                breathsPerMinute,
-              },
-            ],
+    samples: (raw.respirationValuesArray ?? []).flatMap(([timestamp, breathsPerMinute]) =>
+      breathsPerMinute < 0
+        ? []
+        : [
+            {
+              recordedAt: new Date(timestamp).toISOString(),
+              breathsPerMinute,
+            },
+          ],
     ),
   };
 }
@@ -194,10 +177,7 @@ const bloodOxygenSchema = z.object({
   lowestSpO2: measurement,
   latestSpO2: measurement,
   latestSpO2TimestampGMT: z.string().nullable().optional(),
-  lastSevenDaysAvgSpO2: z
-    .union([z.number(), numericString])
-    .nullable()
-    .optional(),
+  lastSevenDaysAvgSpO2: z.union([z.number(), numericString]).nullable().optional(),
   avgSleepSpO2: measurement,
   spO2HourlyAverages: z
     .array(z.tuple([epochMilliseconds, z.number().nullable()]))
@@ -214,19 +194,13 @@ export function mapDailyBloodOxygen(value: unknown): DailyBloodOxygen {
     ...(raw.averageSpO2 == null ? {} : { averagePercent: raw.averageSpO2 }),
     ...(raw.lowestSpO2 == null ? {} : { lowestPercent: raw.lowestSpO2 }),
     ...(raw.latestSpO2 == null ? {} : { latestPercent: raw.latestSpO2 }),
-    ...(raw.latestSpO2TimestampGMT == null
-      ? {}
-      : { latestRecordedAt: raw.latestSpO2TimestampGMT }),
+    ...(raw.latestSpO2TimestampGMT == null ? {} : { latestRecordedAt: raw.latestSpO2TimestampGMT }),
     ...(raw.lastSevenDaysAvgSpO2 == null
       ? {}
       : { sevenDayAveragePercent: raw.lastSevenDaysAvgSpO2 }),
-    ...(raw.avgSleepSpO2 == null
-      ? {}
-      : { averageSleepPercent: raw.avgSleepSpO2 }),
+    ...(raw.avgSleepSpO2 == null ? {} : { averageSleepPercent: raw.avgSleepSpO2 }),
     samples: (raw.spO2HourlyAverages ?? []).flatMap(([timestamp, percent]) =>
-      percent == null
-        ? []
-        : [{ recordedAt: new Date(timestamp).toISOString(), percent }],
+      percent == null ? [] : [{ recordedAt: new Date(timestamp).toISOString(), percent }],
     ),
   };
 }
@@ -248,10 +222,7 @@ const bodyCompositionSchema = z.object({
   ),
 });
 
-export function mapDailyBodyComposition(
-  date: string,
-  value: unknown,
-): DailyBodyComposition {
+export function mapDailyBodyComposition(date: string, value: unknown): DailyBodyComposition {
   const result = bodyCompositionSchema.safeParse(value);
   if (!result.success) throw invalid("body-composition");
   return {
@@ -264,15 +235,9 @@ export function mapDailyBodyComposition(
       ...(raw.bodyWater == null ? {} : { bodyWaterPercent: raw.bodyWater }),
       ...(raw.boneMass == null ? {} : { boneMassGrams: raw.boneMass }),
       ...(raw.muscleMass == null ? {} : { muscleMassGrams: raw.muscleMass }),
-      ...(raw.physiqueRating == null
-        ? {}
-        : { physiqueRating: raw.physiqueRating }),
-      ...(raw.visceralFat == null
-        ? {}
-        : { visceralFatRating: raw.visceralFat }),
-      ...(raw.metabolicAge == null
-        ? {}
-        : { metabolicAgeYears: raw.metabolicAge }),
+      ...(raw.physiqueRating == null ? {} : { physiqueRating: raw.physiqueRating }),
+      ...(raw.visceralFat == null ? {} : { visceralFatRating: raw.visceralFat }),
+      ...(raw.metabolicAge == null ? {} : { metabolicAgeYears: raw.metabolicAge }),
     })),
   };
 }

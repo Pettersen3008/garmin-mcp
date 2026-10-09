@@ -8,12 +8,7 @@ import {
   mapWorkoutScheduleId,
   mapWorkoutSummaries,
 } from "./map.ts";
-import type {
-  Workout,
-  WorkoutDraft,
-  WorkoutSchedule,
-  WorkoutSummary,
-} from "./model.ts";
+import type { Workout, WorkoutDraft, WorkoutSchedule, WorkoutSummary } from "./model.ts";
 import { buildWorkoutPayload } from "./payload.ts";
 
 export async function listWorkouts({
@@ -114,9 +109,7 @@ export async function scheduleWorkout({
     }),
   );
   try {
-    return mapWorkoutSchedule(
-      await requestJson({ path: `/workout-service/schedule/${id}` }),
-    );
+    return mapWorkoutSchedule(await requestJson({ path: `/workout-service/schedule/${id}` }));
   } catch (error) {
     try {
       await requestJson({
@@ -127,6 +120,7 @@ export async function scheduleWorkout({
       throw new AggregateError(
         [error, rollbackError],
         `Could not read or remove the new workout schedule ${id}`,
+        { cause: rollbackError },
       );
     }
     throw error;

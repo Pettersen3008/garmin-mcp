@@ -19,49 +19,22 @@ it("given a stored session and Garmin fixtures, when using the public client, th
   }
   const responses = new Map<string, unknown>([
     ["/userprofile-service/socialProfile", { displayName: "anonymous" }],
-    [
-      "/activitylist-service/activities/search/activities",
-      activityResponses.list,
-    ],
+    ["/activitylist-service/activities/search/activities", activityResponses.list],
     ["/activity-service/activity/42", activityResponses.detail],
-    [
-      "/usersummary-service/usersummary/daily/anonymous",
-      await fixture("daily-summary"),
-    ],
-    [
-      "/wellness-service/wellness/dailySleepData/anonymous",
-      await fixture("sleep"),
-    ],
-    [
-      "/wellness-service/wellness/dailyHeartRate/anonymous",
-      await fixture("heart-rate"),
-    ],
+    ["/usersummary-service/usersummary/daily/anonymous", await fixture("daily-summary")],
+    ["/wellness-service/wellness/dailySleepData/anonymous", await fixture("sleep")],
+    ["/wellness-service/wellness/dailyHeartRate/anonymous", await fixture("heart-rate")],
     ["/hrv-service/hrv/2026-08-30", await fixture("hrv")],
-    [
-      "/wellness-service/wellness/dailyStress/2026-08-30",
-      await fixture("stress"),
-    ],
-    [
-      "/wellness-service/wellness/bodyBattery/reports/daily",
-      await fixture("body-battery"),
-    ],
-    [
-      "/wellness-service/wellness/daily/respiration/2026-08-30",
-      await fixture("respiration"),
-    ],
-    [
-      "/wellness-service/wellness/daily/spo2/2026-08-30",
-      await fixture("blood-oxygen"),
-    ],
+    ["/wellness-service/wellness/dailyStress/2026-08-30", await fixture("stress")],
+    ["/wellness-service/wellness/bodyBattery/reports/daily", await fixture("body-battery")],
+    ["/wellness-service/wellness/daily/respiration/2026-08-30", await fixture("respiration")],
+    ["/wellness-service/wellness/daily/spo2/2026-08-30", await fixture("blood-oxygen")],
     ["/weight-service/weight/dateRange", await fixture("body-composition")],
     [
       "/metrics-service/metrics/trainingstatus/aggregated/2026-08-30",
       await fixture("training-status"),
     ],
-    [
-      "/metrics-service/metrics/trainingreadiness/2026-08-30",
-      await fixture("training-readiness"),
-    ],
+    ["/metrics-service/metrics/trainingreadiness/2026-08-30", await fixture("training-readiness")],
   ]);
   const fetchFixture: Fetch = async (input) => {
     if (!(input instanceof URL)) {

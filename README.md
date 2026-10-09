@@ -6,7 +6,7 @@ This project is unofficial and not affiliated with Garmin. It calls undocumented
 
 ## Requirements
 
-- [Bun](https://bun.sh) 1.4.0 or later
+- [Bun](https://bun.sh) 1.4.2 or later
 - A Garmin Connect account
 - A system credential store (see [Token storage](#token-storage))
 
@@ -46,30 +46,30 @@ The server writes MCP frames to `stdout` and redacted diagnostics to `stderr`.
 
 ## Tools
 
-| Tool | Access | Destructive |
-| --- | --- | --- |
-| `list_activities` | read | no |
-| `get_activity` | read | no |
-| `get_daily_summary` | read | no |
-| `get_heart_rate` | read | no |
-| `get_hrv` | read | no |
-| `get_stress` | read | no |
-| `get_body_battery` | read | no |
-| `get_respiration` | read | no |
-| `get_blood_oxygen` | read | no |
-| `get_body_composition` | read | no |
-| `get_sleep` | read | no |
-| `get_training_status` | read | no |
-| `get_training_readiness` | read | no |
-| `list_workouts` | read | no |
-| `get_workout` | read | no |
-| `edit_activity` | write | yes |
-| `delete_activity` | write | yes |
-| `create_workout` | write | no |
-| `edit_workout` | write | yes |
-| `delete_workout` | write | yes |
-| `schedule_workout` | write | no |
-| `unschedule_workout` | write | yes |
+| Tool                     | Access | Destructive |
+| ------------------------ | ------ | ----------- |
+| `list_activities`        | read   | no          |
+| `get_activity`           | read   | no          |
+| `get_daily_summary`      | read   | no          |
+| `get_heart_rate`         | read   | no          |
+| `get_hrv`                | read   | no          |
+| `get_stress`             | read   | no          |
+| `get_body_battery`       | read   | no          |
+| `get_respiration`        | read   | no          |
+| `get_blood_oxygen`       | read   | no          |
+| `get_body_composition`   | read   | no          |
+| `get_sleep`              | read   | no          |
+| `get_training_status`    | read   | no          |
+| `get_training_readiness` | read   | no          |
+| `list_workouts`          | read   | no          |
+| `get_workout`            | read   | no          |
+| `edit_activity`          | write  | yes         |
+| `delete_activity`        | write  | yes         |
+| `create_workout`         | write  | no          |
+| `edit_workout`           | write  | yes         |
+| `delete_workout`         | write  | yes         |
+| `schedule_workout`       | write  | no          |
+| `unschedule_workout`     | write  | yes         |
 
 `list_activities` takes a `limit`, optional `from` and `to` dates, and a `start` offset.
 
@@ -79,10 +79,10 @@ Workout steps can end on time, distance, or the lap button (open). `edit_workout
 
 ## Token storage
 
-| OS | Store |
-| --- | --- |
-| macOS | Keychain |
-| Linux | Secret Service through `secret-tool` (install `libsecret-tools`) |
+| OS      | Store                                                             |
+| ------- | ----------------------------------------------------------------- |
+| macOS   | Keychain                                                          |
+| Linux   | Secret Service through `secret-tool` (install `libsecret-tools`)  |
 | Windows | DPAPI-protected file under `%LOCALAPPDATA%\garmin-mcp` (untested) |
 
 To sign out, remove the stored entry:
@@ -99,7 +99,8 @@ On Windows, delete `%LOCALAPPDATA%\garmin-mcp\session`.
 ## Development
 
 ```sh
-bun run check       # Biome, TypeScript, offline tests
+bun run format      # oxfmt --write
+bun run check       # oxfmt, oxlint, TypeScript, offline tests
 bun run verify      # frozen install, check, bun audit
 bun run live-check  # opt-in check against your own account
 ```

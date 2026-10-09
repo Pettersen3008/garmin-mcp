@@ -22,9 +22,7 @@ const rawDailySummarySchema = z.object({
 export function mapDailySummary(value: unknown): DailySummary {
   const result = rawDailySummarySchema.safeParse(value);
   if (!result.success) {
-    throw new GarminInvalidResponseError(
-      "Garmin returned an invalid daily summary",
-    );
+    throw new GarminInvalidResponseError("Garmin returned an invalid daily summary");
   }
   const raw = result.data;
   const moderate = raw.moderateIntensityMinutes ?? 0;
@@ -32,35 +30,22 @@ export function mapDailySummary(value: unknown): DailySummary {
 
   return {
     date: parseLocalDate(raw.calendarDate),
-    ...(raw.activeKilocalories == null
-      ? {}
-      : { activeKilocalories: raw.activeKilocalories }),
-    ...(raw.averageStressLevel == null
-      ? {}
-      : { averageStressLevel: raw.averageStressLevel }),
+    ...(raw.activeKilocalories == null ? {} : { activeKilocalories: raw.activeKilocalories }),
+    ...(raw.averageStressLevel == null ? {} : { averageStressLevel: raw.averageStressLevel }),
     ...(raw.bodyBatteryHighestValue == null
       ? {}
       : { bodyBatteryHighest: raw.bodyBatteryHighestValue }),
     ...(raw.bodyBatteryLowestValue == null
       ? {}
       : { bodyBatteryLowest: raw.bodyBatteryLowestValue }),
-    ...(raw.totalDistanceMeters == null
-      ? {}
-      : { distanceMeters: raw.totalDistanceMeters }),
-    ...(raw.floorsAscended == null
-      ? {}
-      : { floorsAscended: raw.floorsAscended }),
-    ...(raw.moderateIntensityMinutes == null &&
-    raw.vigorousIntensityMinutes == null
+    ...(raw.totalDistanceMeters == null ? {} : { distanceMeters: raw.totalDistanceMeters }),
+    ...(raw.floorsAscended == null ? {} : { floorsAscended: raw.floorsAscended }),
+    ...(raw.moderateIntensityMinutes == null && raw.vigorousIntensityMinutes == null
       ? {}
       : { intensityMinutes: moderate + vigorous * 2 }),
-    ...(raw.restingHeartRate == null
-      ? {}
-      : { restingHeartRateBpm: raw.restingHeartRate }),
+    ...(raw.restingHeartRate == null ? {} : { restingHeartRateBpm: raw.restingHeartRate }),
     ...(raw.dailyStepGoal == null ? {} : { stepGoal: raw.dailyStepGoal }),
     ...(raw.totalSteps == null ? {} : { steps: raw.totalSteps }),
-    ...(raw.totalKilocalories == null
-      ? {}
-      : { totalKilocalories: raw.totalKilocalories }),
+    ...(raw.totalKilocalories == null ? {} : { totalKilocalories: raw.totalKilocalories }),
   };
 }

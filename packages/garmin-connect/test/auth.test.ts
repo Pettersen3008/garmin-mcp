@@ -26,9 +26,7 @@ describe("Garmin authentication", () => {
     const session = await exchangeTicket({
       fetch: fakeFetch,
       now: () => 1_800_000_000_000,
-      ticket: parseGarminTicket(
-        "https://sso.garmin.com/sso/embed?ticket=ST-example",
-      ),
+      ticket: parseGarminTicket("https://sso.garmin.com/sso/embed?ticket=ST-example"),
     });
 
     expect(createGarminSignInUrl().origin).toBe("https://sso.garmin.com");

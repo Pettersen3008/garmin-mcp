@@ -1,9 +1,5 @@
 import { GarminAuthError } from "../http/errors.ts";
-import {
-  type GarminSession,
-  parseGarminSession,
-  type SessionStore,
-} from "./session.ts";
+import { type GarminSession, parseGarminSession, type SessionStore } from "./session.ts";
 
 const service = "@pettersen/garmin-connect";
 const account = "default";
@@ -31,9 +27,7 @@ function spawn(input: Command) {
   }
 }
 
-async function runCommand(
-  input: Command,
-): Promise<{ code: number; output: string }> {
+async function runCommand(input: Command): Promise<{ code: number; output: string }> {
   const processHandle = spawn(input);
   const [code, stdout, stderr] = await Promise.all([
     processHandle.exited,
@@ -60,9 +54,7 @@ export function credentialStoreCommand(
     const line = `add-generic-password -a ${account} -s ${service} -U -w "${secret.replace(/[\\"]/g, "\\$&")}"\n`;
     if (line.length > 4000) {
       // security -i truncates lines near 4 KB, which would store a corrupt session.
-      throw new GarminAuthError(
-        "The Garmin session is too large for the macOS keychain command",
-      );
+      throw new GarminAuthError("The Garmin session is too large for the macOS keychain command");
     }
     return {
       args: ["-i"],
@@ -73,14 +65,7 @@ export function credentialStoreCommand(
   if (platform === "linux") {
     return secret
       ? {
-          args: [
-            "store",
-            "--label=Garmin MCP session",
-            "service",
-            service,
-            "account",
-            account,
-          ],
+          args: ["store", "--label=Garmin MCP session", "service", service, "account", account],
           command: "secret-tool",
           stdin: new TextEncoder().encode(secret),
         }
@@ -113,11 +98,8 @@ export function createSessionStore(): SessionStore {
 
       if (result.code !== 0) {
         if (
-          (process.platform === "darwin" &&
-            result.output.includes("could not be found")) ||
-          (process.platform === "linux" &&
-            result.code === 1 &&
-            result.output.trim() === "") ||
+          (process.platform === "darwin" && result.output.includes("could not be found")) ||
+          (process.platform === "linux" && result.code === 1 && result.output.trim() === "") ||
           (process.platform === "win32" && result.code === 3)
         ) {
           return null;
@@ -137,10 +119,7 @@ export function createSessionStore(): SessionStore {
       }
     },
     async save(session: GarminSession) {
-      if (
-        (await runCommand(credentialStoreCommand(process.platform, session)))
-          .code !== 0
-      ) {
+      if ((await runCommand(credentialStoreCommand(process.platform, session))).code !== 0) {
         throw new GarminAuthError(
           "Could not save the Garmin session to the system credential store",
         );

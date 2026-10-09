@@ -34,14 +34,10 @@ export function failure(error: unknown) {
   const detail = {
     code,
     message:
-      code === "internal" || !(error instanceof Error)
-        ? "Garmin tool failed"
-        : error.message,
+      code === "internal" || !(error instanceof Error) ? "Garmin tool failed" : error.message,
   };
   return {
-    content: [
-      { type: "text" as const, text: JSON.stringify({ error: detail }) },
-    ],
+    content: [{ type: "text" as const, text: JSON.stringify({ error: detail }) }],
     isError: true,
     structuredContent: { error: detail },
   };

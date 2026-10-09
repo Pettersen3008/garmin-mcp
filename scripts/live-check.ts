@@ -1,7 +1,4 @@
-import {
-  createGarminClient,
-  parseLocalDate,
-} from "../packages/garmin-connect/src/index.ts";
+import { createGarminClient, parseLocalDate } from "../packages/garmin-connect/src/index.ts";
 
 if (process.env.GARMIN_E2E !== "1") {
   throw new Error("Set GARMIN_E2E=1 to run the live Garmin check");
@@ -20,9 +17,7 @@ const garmin = await createGarminClient({
 const activities = await garmin.activities.list({ limit: 1 });
 const activity = activities[0];
 if (!activity) {
-  throw new Error(
-    "The account has no activity available for the activity detail check",
-  );
+  throw new Error("The account has no activity available for the activity detail check");
 }
 
 const workouts = await garmin.workouts.list({ limit: 1 });
@@ -66,8 +61,7 @@ if (process.env.GARMIN_E2E_WRITES === "1") {
     const schedule = await garmin.workouts.schedule({
       workoutId: workout.id,
       date: parseLocalDate(
-        process.env.GARMIN_E2E_SCHEDULE_DATE ??
-          localDate(new Date(Date.now() + 86_400_000)),
+        process.env.GARMIN_E2E_SCHEDULE_DATE ?? localDate(new Date(Date.now() + 86_400_000)),
       ),
     });
     operationsChecked += 1;

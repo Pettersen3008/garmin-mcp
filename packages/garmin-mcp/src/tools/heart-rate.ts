@@ -3,10 +3,7 @@ import { type GarminClient, parseLocalDate } from "@pettersen/garmin-connect";
 import { runTool } from "../mcp-result.ts";
 import { dateInput, readOnly } from "../tool-schemas.ts";
 
-export function registerHeartRateTool(
-  server: McpServer,
-  garmin: GarminClient,
-): void {
+export function registerHeartRateTool(server: McpServer, garmin: GarminClient): void {
   server.registerTool(
     "get_heart_rate",
     {
