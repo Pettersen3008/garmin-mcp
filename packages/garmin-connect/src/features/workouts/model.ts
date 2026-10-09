@@ -22,7 +22,10 @@ export type WorkoutTarget =
 export type ExecutableWorkoutStep = {
   kind: WorkoutStepKind;
   description?: string | undefined;
-  end: { kind: "time"; seconds: number } | { kind: "distance"; meters: number };
+  end:
+    | { kind: "time"; seconds: number }
+    | { kind: "distance"; meters: number }
+    | { kind: "open" };
   target?: WorkoutTarget | undefined;
 };
 

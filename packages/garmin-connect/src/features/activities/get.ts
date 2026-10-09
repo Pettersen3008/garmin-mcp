@@ -1,3 +1,4 @@
+import { assertGarminId } from "../../garmin-id.ts";
 import type { GetJson } from "../../http/request.ts";
 import { mapActivity } from "./map.ts";
 import type { Activity } from "./model.ts";
@@ -9,10 +10,7 @@ export async function getActivity({
   getJson: GetJson;
   id: string;
 }): Promise<Activity> {
-  if (!/^[1-9]\d*$/.test(id)) {
-    throw new RangeError("Activity id must be a positive decimal string");
-  }
-
+  assertGarminId(id, "Activity id");
   return mapActivity(
     await getJson({ path: `/activity-service/activity/${id}` }),
   );

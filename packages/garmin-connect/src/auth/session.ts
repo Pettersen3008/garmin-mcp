@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GarminInvalidResponseError } from "../http/errors.ts";
+import { GarminAuthError } from "../http/errors.ts";
 
 const oauth2TokenSchema = z.object({
   accessToken: z.string().min(1),
@@ -27,7 +27,7 @@ export function parseGarminSession(value: unknown): GarminSession {
   const result = garminSessionSchema.safeParse(value);
 
   if (!result.success) {
-    throw new GarminInvalidResponseError("Stored Garmin session is invalid");
+    throw new GarminAuthError("Stored Garmin session is invalid");
   }
 
   return result.data;

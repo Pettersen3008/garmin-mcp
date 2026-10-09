@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { garminIdSchema } from "../../garmin-id.ts";
 import { GarminInvalidResponseError } from "../../http/errors.ts";
 import { parseLocalDate } from "../../local-date.ts";
 import type {
@@ -9,11 +11,62 @@ import type {
   WorkoutTarget,
 } from "./model.ts";
 
-type RecordValue = Record<string, unknown>;
+const text = z
+  .string()
+  .nullish()
+  .transform((value) => value || undefined);
+const measurement = z.number().nullish();
 
-function isRecord(value: unknown): value is RecordValue {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+const executableSchema = z.object({
+  stepType: z.object({
+    stepTypeKey: z.enum(["warmup", "interval", "recovery", "cooldown", "rest"]),
+  }),
+  description: text,
+  endCondition: z.object({
+    conditionTypeKey: z.enum(["time", "distance", "lap.button"]),
+  }),
+  endConditionValue: measurement,
+  targetType: z.object({ workoutTargetTypeKey: z.string() }).nullish(),
+  zoneNumber: measurement,
+  targetValueOne: measurement,
+  targetValueTwo: measurement,
+});
+const repeatSchema = z.object({
+  stepType: z.object({ stepTypeKey: z.literal("repeat") }),
+  description: text,
+  numberOfIterations: z.number().int().positive(),
+  workoutSteps: z.array(executableSchema).min(1),
+});
+const summarySchema = z.object({
+  workoutId: garminIdSchema,
+  workoutName: z.string().min(1),
+  sportType: z.object({ sportTypeKey: z.string().min(1) }),
+  description: text,
+  estimatedDurationInSecs: measurement,
+  estimatedDistanceInMeters: measurement,
+});
+const workoutSchema = summarySchema.extend({
+  workoutSegments: z
+    .array(
+      z.object({
+        workoutSteps: z.array(z.union([repeatSchema, executableSchema])),
+      }),
+    )
+    .min(1),
+});
+const scheduleIdSchema = z
+  .object({
+    workoutScheduleId: garminIdSchema.nullish(),
+    scheduleId: garminIdSchema.nullish(),
+    id: garminIdSchema.nullish(),
+  })
+  .transform((value) => value.workoutScheduleId ?? value.scheduleId ?? value.id)
+  .pipe(z.string());
+const scheduleSchema = z.object({
+  workout: z.object({ workoutId: garminIdSchema }),
+  calendarDate: text,
+  date: text,
+});
 
 function invalid(field: string): never {
   throw new GarminInvalidResponseError(
@@ -21,98 +74,45 @@ function invalid(field: string): never {
   );
 }
 
-function record(value: unknown, field: string): RecordValue {
-  if (!isRecord(value)) {
-    invalid(field);
-  }
-  return value;
+function parse<T extends z.ZodType>(
+  schema: T,
+  value: unknown,
+  field: string,
+): z.output<T> {
+  const result = schema.safeParse(value);
+  return result.success ? result.data : invalid(field);
 }
 
-function string(record: RecordValue, key: string): string {
-  const value = record[key];
-  if (typeof value !== "string" || value.length === 0) {
-    invalid(key);
-  }
-  return value;
-}
-
-function id(record: RecordValue, ...keys: string[]): string {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === "string" && /^[1-9]\d*$/.test(value)) {
-      return value;
-    }
-    if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) {
-      return String(value);
-    }
-  }
-  return invalid(keys[0] ?? "id");
-}
-
-function optionalString(record: RecordValue, key: string): string | undefined {
-  const value = record[key];
-  if (value === undefined || value === null || value === "") {
-    return undefined;
-  }
-  return typeof value === "string" ? value : invalid(key);
-}
-
-function optionalNumber(record: RecordValue, key: string): number | undefined {
-  const value = record[key];
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : invalid(key);
-}
-
-function summary(input: unknown): WorkoutSummary {
-  const value = record(input, "workout");
-  const sport = record(value.sportType, "sportType");
-  const description = optionalString(value, "description");
-  const estimatedDurationSeconds = optionalNumber(
-    value,
-    "estimatedDurationInSecs",
-  );
-  const estimatedDistanceMeters = optionalNumber(
-    value,
-    "estimatedDistanceInMeters",
-  );
+function summary(raw: z.output<typeof summarySchema>): WorkoutSummary {
   return {
-    id: id(value, "workoutId"),
-    name: string(value, "workoutName"),
-    sport: string(sport, "sportTypeKey"),
-    ...(description === undefined ? {} : { description }),
-    ...(estimatedDurationSeconds === undefined
+    id: raw.workoutId,
+    name: raw.workoutName,
+    sport: raw.sportType.sportTypeKey,
+    ...(raw.description === undefined ? {} : { description: raw.description }),
+    ...(raw.estimatedDurationInSecs == null
       ? {}
-      : { estimatedDurationSeconds }),
-    ...(estimatedDistanceMeters === undefined
+      : { estimatedDurationSeconds: raw.estimatedDurationInSecs }),
+    ...(raw.estimatedDistanceInMeters == null
       ? {}
-      : { estimatedDistanceMeters }),
+      : { estimatedDistanceMeters: raw.estimatedDistanceInMeters }),
   };
 }
 
-function target(input: unknown): WorkoutTarget | undefined {
-  const step = record(input, "workout step");
-  if (step.targetType === undefined) {
+function target(
+  step: z.output<typeof executableSchema>,
+): WorkoutTarget | undefined {
+  const kind = step.targetType?.workoutTargetTypeKey;
+  if (kind == null || kind === "no.target") {
     return undefined;
   }
-  const value = record(step.targetType, "targetType");
-  const kind = string(value, "workoutTargetTypeKey");
-  if (kind === "no.target") {
-    return undefined;
+  if (kind === "heart.rate.zone" && step.zoneNumber != null) {
+    return { kind: "heartRateZone", zone: step.zoneNumber };
   }
-  const zone = optionalNumber(step, "zoneNumber");
-  if (kind === "heart.rate.zone" && zone !== undefined) {
-    return { kind: "heartRateZone", zone };
-  }
-  const first = requiredNumber(step, "targetValueOne");
-  const second = optionalNumber(step, "targetValueTwo");
-  if (kind === "heart.rate.zone" && second === undefined) {
+  const first = step.targetValueOne ?? invalid("targetValueOne");
+  if (kind === "heart.rate.zone" && step.targetValueTwo == null) {
     return { kind: "heartRateZone", zone: first };
   }
-  const upper = second ?? invalid("targetValueTwo");
+  const upper = step.targetValueTwo ?? invalid("targetValueTwo");
   switch (kind) {
     case "heart.rate.zone":
       return { kind: "heartRate", minBpm: first, maxBpm: upper };
@@ -137,118 +137,77 @@ function target(input: unknown): WorkoutTarget | undefined {
   }
 }
 
-function requiredNumber(value: RecordValue, key: string): number {
-  return optionalNumber(value, key) ?? invalid(key);
-}
-
-function positiveInteger(value: RecordValue, key: string): number {
-  const result = requiredNumber(value, key);
-  return Number.isInteger(result) && result > 0 ? result : invalid(key);
-}
-
 function executable(
-  value: RecordValue,
-  kind: ExecutableWorkoutStep["kind"],
+  step: z.output<typeof executableSchema>,
 ): ExecutableWorkoutStep {
-  const condition = record(value.endCondition, "endCondition");
-  const conditionKind = string(condition, "conditionTypeKey");
-  const amount = requiredNumber(value, "endConditionValue");
+  const condition = step.endCondition.conditionTypeKey;
   const end: ExecutableWorkoutStep["end"] =
-    conditionKind === "time"
-      ? { kind: "time", seconds: amount }
-      : conditionKind === "distance"
-        ? { kind: "distance", meters: amount }
-        : invalid("conditionTypeKey");
-  const stepTarget = target(value);
-  const description = optionalString(value, "description");
+    condition === "lap.button"
+      ? { kind: "open" }
+      : condition === "time"
+        ? {
+            kind: "time",
+            seconds: step.endConditionValue ?? invalid("endConditionValue"),
+          }
+        : {
+            kind: "distance",
+            meters: step.endConditionValue ?? invalid("endConditionValue"),
+          };
+  const stepTarget = target(step);
   return {
-    kind,
+    kind: step.stepType.stepTypeKey,
     end,
-    ...(description === undefined ? {} : { description }),
+    ...(step.description === undefined
+      ? {}
+      : { description: step.description }),
     ...(stepTarget === undefined ? {} : { target: stepTarget }),
   };
 }
 
-function step(input: unknown): WorkoutStep {
-  const value = record(input, "workout step");
-  const stepType = record(value.stepType, "stepType");
-  const kind = string(stepType, "stepTypeKey");
-  if (kind === "repeat") {
-    if (!Array.isArray(value.workoutSteps) || value.workoutSteps.length === 0) {
-      invalid("workoutSteps");
-    }
-    const description = optionalString(value, "description");
-    return {
-      kind: "repeat",
-      repetitions: positiveInteger(value, "numberOfIterations"),
-      steps: value.workoutSteps.map((child) => {
-        const mapped = step(child);
-        return mapped.kind === "repeat" ? invalid("nested repeat") : mapped;
-      }),
-      ...(description === undefined ? {} : { description }),
-    };
+function step(
+  raw: z.output<typeof repeatSchema> | z.output<typeof executableSchema>,
+): WorkoutStep {
+  if (!("numberOfIterations" in raw)) {
+    return executable(raw);
   }
-  if (!isStepKind(kind)) {
-    invalid("stepTypeKey");
-  }
-  return executable(value, kind);
-}
-
-function isStepKind(value: string): value is ExecutableWorkoutStep["kind"] {
-  return (
-    value === "warmup" ||
-    value === "interval" ||
-    value === "recovery" ||
-    value === "cooldown" ||
-    value === "rest"
-  );
+  return {
+    kind: "repeat",
+    repetitions: raw.numberOfIterations,
+    steps: raw.workoutSteps.map(executable),
+    ...(raw.description === undefined ? {} : { description: raw.description }),
+  };
 }
 
 export function mapWorkoutId(input: unknown): string {
-  return id(record(input, "workout"), "workoutId");
+  return parse(summarySchema.pick({ workoutId: true }), input, "workoutId")
+    .workoutId;
 }
 
 export function mapWorkoutScheduleId(input: unknown): string {
-  return id(
-    record(input, "workout schedule"),
-    "workoutScheduleId",
-    "scheduleId",
-    "id",
-  );
+  return parse(scheduleIdSchema, input, "workoutScheduleId");
 }
 
 export function mapWorkoutSummaries(input: unknown): WorkoutSummary[] {
-  if (!Array.isArray(input)) {
-    invalid("workout list");
-  }
-  return input.map(summary);
+  return parse(z.array(summarySchema), input, "workout list").map(summary);
 }
 
 export function mapWorkout(input: unknown): Workout {
-  const value = record(input, "workout");
-  if (
-    !Array.isArray(value.workoutSegments) ||
-    value.workoutSegments.length === 0
-  ) {
-    invalid("workoutSegments");
+  const raw = parse(workoutSchema, input, "workout");
+  const [segment, ...rest] = raw.workoutSegments;
+  if (!segment || rest.length > 0) {
+    // Edits write one segment, so a flattened multi-segment read would be lossy.
+    throw new GarminInvalidResponseError(
+      "Garmin workouts with more than one segment are not supported",
+    );
   }
-  const steps = value.workoutSegments.flatMap((segment) => {
-    const segmentRecord = record(segment, "workout segment");
-    if (!Array.isArray(segmentRecord.workoutSteps)) {
-      invalid("workoutSteps");
-    }
-    return segmentRecord.workoutSteps.map(step);
-  });
-  return { ...summary(value), steps };
+  return { ...summary(raw), steps: segment.workoutSteps.map(step) };
 }
 
 export function mapWorkoutSchedule(input: unknown): WorkoutSchedule {
-  const value = record(input, "workout schedule");
+  const raw = parse(scheduleSchema, input, "workout schedule");
   return {
-    id: id(value, "workoutScheduleId", "scheduleId", "id"),
-    workoutId: id(record(value.workout, "workout"), "workoutId"),
-    date: parseLocalDate(
-      optionalString(value, "calendarDate") ?? string(value, "date"),
-    ),
+    id: mapWorkoutScheduleId(input),
+    workoutId: raw.workout.workoutId,
+    date: parseLocalDate(raw.calendarDate ?? raw.date ?? invalid("date")),
   };
 }

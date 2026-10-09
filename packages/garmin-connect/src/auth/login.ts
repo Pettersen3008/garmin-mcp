@@ -1,10 +1,6 @@
 import { createInterface } from "node:readline/promises";
+import { createGarminClient } from "../client.ts";
 import { GarminAuthError } from "../http/errors.ts";
-import { createRequestJson } from "../http/request.ts";
-import { exchangeTicket } from "./oauth.ts";
-import { getProfileDisplayName } from "./profile.ts";
-import type { GarminSession } from "./session.ts";
-import { createSessionStore } from "./token-store.ts";
 
 export function createGarminSignInUrl(): URL {
   const base = "https://sso.garmin.com/sso";
@@ -56,11 +52,17 @@ export async function runInteractiveLogin(): Promise<void> {
             signInUrl.toString(),
           ]
         : ["xdg-open", signInUrl.toString()];
-  const opener = Bun.spawn(openerCommand, {
-    stderr: "ignore",
-    stdout: "ignore",
-  });
-  if ((await opener.exited) !== 0) {
+  let opened = false;
+  try {
+    const opener = Bun.spawn(openerCommand, {
+      stderr: "ignore",
+      stdout: "ignore",
+    });
+    opened = (await opener.exited) === 0;
+  } catch {
+    // No browser opener (for example headless Linux); the URL below still works.
+  }
+  if (!opened) {
     console.error(`Open this URL in a browser:\n${signInUrl}`);
   }
 
@@ -74,28 +76,7 @@ export async function runInteractiveLogin(): Promise<void> {
   const redirectUrl = await terminal.question("Redirect URL: ");
   terminal.close();
 
-  const sessionStore = createSessionStore();
-  let session = await exchangeTicket({
-    fetch,
-    now: Date.now,
-    ticket: parseGarminTicket(redirectUrl),
-  });
-  const memoryStore = {
-    async load() {
-      return session;
-    },
-    async save(nextSession: GarminSession) {
-      session = nextSession;
-    },
-  };
-  const getJson = createRequestJson({
-    fetch,
-    now: Date.now,
-    session,
-    sessionStore: memoryStore,
-  });
-  await getProfileDisplayName(getJson);
-  await sessionStore.save(session);
+  await createGarminClient({ serviceTicket: parseGarminTicket(redirectUrl) });
   console.error("Garmin session stored in the system credential store.");
 }
 

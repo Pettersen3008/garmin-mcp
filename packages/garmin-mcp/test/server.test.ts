@@ -2,11 +2,14 @@ import { expect, it } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
+  GarminAuthError,
   type GarminClient,
+  GarminHttpError,
   parseLocalDate,
   type Workout,
 } from "@pettersen/garmin-connect";
 import { createServer } from "../src/create-server.ts";
+import { failure } from "../src/mcp-result.ts";
 
 const fixtureWorkout: Workout = {
   id: "7",
@@ -268,10 +271,69 @@ it("given the fixture SDK, when calling the MCP server, then registered tools re
         arguments: { confirm: true, id: "9" },
       }),
     ]);
+    expect(calls.filter(({ isError }) => isError)).toEqual([]);
     expect(
       calls.every(({ structuredContent }) => structuredContent !== undefined),
     ).toBe(true);
   } finally {
     await Promise.all([client.close(), server.close()]);
+  }
+});
+
+it("given a write tool call without confirm, when calling it, then rejects before reaching Garmin", async () => {
+  let deleted = false;
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const server = createServer({
+    ...garmin,
+    activities: {
+      ...garmin.activities,
+      async delete(input) {
+        deleted = true;
+        return garmin.activities.delete(input);
+      },
+    },
+  });
+  const client = new Client({ name: "test-client", version: "0.0.0" });
+  await Promise.all([
+    server.connect(serverTransport),
+    client.connect(clientTransport),
+  ]);
+
+  try {
+    const result = await client.callTool({
+      name: "delete_activity",
+      arguments: { id: "42" },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(deleted).toBe(false);
+  } finally {
+    await Promise.all([client.close(), server.close()]);
+  }
+});
+
+it("given SDK errors, when converting to a tool result, then maps each class to its code", () => {
+  const code = (error: unknown) => failure(error).structuredContent.error.code;
+  const logged = console.error;
+  console.error = () => {};
+  try {
+    expect([
+      code(new GarminAuthError("expired")),
+      code(new GarminHttpError(404)),
+      code(new GarminHttpError(400)),
+      code(new GarminHttpError(503)),
+      code(new RangeError("bad date")),
+      code(new Error("secret detail")),
+    ]).toEqual([
+      "auth",
+      "not_found",
+      "invalid_request",
+      "upstream",
+      "invalid_input",
+      "internal",
+    ]);
+  } finally {
+    console.error = logged;
   }
 });

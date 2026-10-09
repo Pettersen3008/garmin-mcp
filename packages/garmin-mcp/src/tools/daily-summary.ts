@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type GarminClient, parseLocalDate } from "@pettersen/garmin-connect";
-import { z } from "zod";
 import { runTool } from "../mcp-result.ts";
+import { dateInput, readOnly } from "../tool-schemas.ts";
 
 export function registerDailySummaryTool(
   server: McpServer,
@@ -10,17 +10,10 @@ export function registerDailySummaryTool(
   server.registerTool(
     "get_daily_summary",
     {
-      annotations: {
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: true,
-        readOnlyHint: true,
-      },
+      annotations: readOnly,
       description:
         "Get Garmin's daily health and movement summary for a calendar date.",
-      inputSchema: z.object({
-        date: z.string().describe("Calendar date in YYYY-MM-DD format"),
-      }),
+      inputSchema: dateInput,
     },
     ({ date }) =>
       runTool(async () => ({

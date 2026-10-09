@@ -7,13 +7,13 @@ if (process.env.GARMIN_E2E !== "1") {
   throw new Error("Set GARMIN_E2E=1 to run the live Garmin check");
 }
 
-const now = new Date();
-const defaultDate = [
-  now.getFullYear(),
-  String(now.getMonth() + 1).padStart(2, "0"),
-  String(now.getDate()).padStart(2, "0"),
-].join("-");
-const date = parseLocalDate(process.argv[2] ?? defaultDate);
+const localDate = (value: Date) =>
+  [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, "0"),
+    String(value.getDate()).padStart(2, "0"),
+  ].join("-");
+const date = parseLocalDate(process.argv[2] ?? localDate(new Date()));
 const garmin = await createGarminClient({
   diagnostics: (event) => console.error(JSON.stringify(event)),
 });
@@ -67,7 +67,7 @@ if (process.env.GARMIN_E2E_WRITES === "1") {
       workoutId: workout.id,
       date: parseLocalDate(
         process.env.GARMIN_E2E_SCHEDULE_DATE ??
-          new Date(Date.now() + 86_400_000).toISOString().slice(0, 10),
+          localDate(new Date(Date.now() + 86_400_000)),
       ),
     });
     operationsChecked += 1;

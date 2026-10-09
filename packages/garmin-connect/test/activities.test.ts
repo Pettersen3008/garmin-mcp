@@ -109,9 +109,7 @@ describe("activities", () => {
         startTimeLocal: "2025-01-02 07:30:00",
       }),
     ).toThrow(
-      new GarminInvalidResponseError(
-        "Garmin activity response has invalid or missing activityType",
-      ),
+      new GarminInvalidResponseError("Garmin returned an invalid activity"),
     );
   });
 

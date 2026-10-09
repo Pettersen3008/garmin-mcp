@@ -96,9 +96,9 @@ describe("health feature mappers", () => {
       date: parseLocalDate("2026-08-30"),
       measurements: [
         {
-          weightGrams: 73500,
-          bodyFatPercent: 16.2,
-          muscleMassGrams: 58400,
+          weightGrams: 70000,
+          bodyFatPercent: 20,
+          muscleMassGrams: 50000,
         },
       ],
     });
@@ -118,6 +118,21 @@ describe("health feature mappers", () => {
       date: "2026-08-30",
       score: 82,
     });
+  });
+
+  it("given a day without samples, when mapping, then returns empty samples and no training status", () => {
+    const date = "2026-08-30";
+    expect(
+      mapDailyStress({ calendarDate: date, stressValuesArray: null }).samples,
+    ).toEqual([]);
+    expect(
+      mapDailyRespiration({ calendarDate: date, respirationValuesArray: null })
+        .samples,
+    ).toEqual([]);
+    expect(
+      mapDailyHeartRate({ calendarDate: date, heartRateValues: null }).samples,
+    ).toEqual([]);
+    expect(mapTrainingStatus({ mostRecentTrainingStatus: null })).toBeNull();
   });
 });
 

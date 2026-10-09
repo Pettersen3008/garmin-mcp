@@ -40,9 +40,6 @@ it("given an expired access token, when requesting JSON, then refreshes and save
     now: () => 1_900_000_000_000,
     session: expiredSession,
     sessionStore: {
-      async load() {
-        return expiredSession;
-      },
       async save(session) {
         savedSession = session;
       },
@@ -79,9 +76,6 @@ it("given a mutation, when Garmin fails, then sends its JSON body once", async (
     now: () => 1_700_000_000_000,
     session: expiredSession,
     sessionStore: {
-      async load() {
-        return expiredSession;
-      },
       async save() {},
     },
   });
@@ -108,9 +102,6 @@ it("given an empty successful response, when deleting, then returns no JSON", as
     now: () => 1_700_000_000_000,
     session: expiredSession,
     sessionStore: {
-      async load() {
-        return expiredSession;
-      },
       async save() {},
     },
   });
@@ -118,4 +109,31 @@ it("given an empty successful response, when deleting, then returns no JSON", as
   await expect(
     requestJson({ method: "DELETE", path: "/workout-service/workout/7" }),
   ).resolves.toBeUndefined();
+});
+
+it("given an expired token and parallel requests, when they run, then refresh runs once", async () => {
+  let refreshes = 0;
+  const getJson = createRequestJson({
+    fetch: async (input) => {
+      if (input instanceof URL && input.hostname === "diauth.garmin.com") {
+        refreshes += 1;
+        return Response.json({
+          access_token: "three",
+          expires_in: 3600,
+          refresh_token: "refresh-three",
+          refresh_token_expires_in: 86400,
+          scope: "CONNECT_READ",
+          token_type: "bearer",
+        });
+      }
+      return Response.json({ ok: true });
+    },
+    now: () => 1_900_000_000_000,
+    session: expiredSession,
+    sessionStore: { async save() {} },
+  });
+
+  await Promise.all([getJson({ path: "/a" }), getJson({ path: "/b" })]);
+
+  expect(refreshes).toBe(1);
 });

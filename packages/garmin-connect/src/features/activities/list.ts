@@ -1,4 +1,5 @@
 import type { GetJson } from "../../http/request.ts";
+import { parseLocalDate } from "../../local-date.ts";
 import { mapActivities } from "./map.ts";
 import type { Activity, ListActivitiesInput } from "./model.ts";
 
@@ -12,6 +13,16 @@ export async function listActivities({
   if (!Number.isInteger(input.limit) || input.limit < 1 || input.limit > 100) {
     throw new RangeError("Activity limit must be an integer from 1 to 100");
   }
+  const start = input.start ?? 0;
+  if (!Number.isInteger(start) || start < 0) {
+    throw new RangeError("Activity start must be a non-negative integer");
+  }
+  if (input.from !== undefined) {
+    parseLocalDate(input.from);
+  }
+  if (input.to !== undefined) {
+    parseLocalDate(input.to);
+  }
   if (
     input.from !== undefined &&
     input.to !== undefined &&
@@ -21,7 +32,7 @@ export async function listActivities({
   }
 
   const query: Record<string, string> = {
-    start: "0",
+    start: String(start),
     limit: String(input.limit),
   };
   if (input.from !== undefined) {

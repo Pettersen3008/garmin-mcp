@@ -1,80 +1,117 @@
 # Garmin MCP
 
-This Bun monorepo contains an unofficial Garmin Connect SDK and MCP server. It has 22 tools for activity, health, training, and workout data. Every write tool requires `confirm: true`. Garmin does not support the consumer endpoints this code calls, so they can change without notice.
+An MCP server that lets an AI assistant read and change your own Garmin Connect data: activities, workouts, daily health, sleep, and training metrics. The repository is a Bun monorepo with two packages. `packages/garmin-connect` is a TypeScript SDK for the Garmin Connect endpoints, and `packages/garmin-mcp` is the stdio MCP server built on it.
 
-This project is not affiliated with Garmin. It uses undocumented consumer endpoints and an unpublished mobile-client OAuth flow. Use it only with your own account and at your own risk. Garmin can revoke access or change the endpoints at any time.
+This project is unofficial and not affiliated with Garmin. It calls undocumented consumer endpoints and signs in by impersonating the Garmin Connect mobile app's OAuth client. Garmin can change or block these endpoints at any time, and the server may break without notice. Use it only with your own account, at your own risk, and check Garmin's terms of use first.
 
-## Current state
+## Requirements
 
-The read foundation is complete. The project now expands toward a full personal Garmin Connect MCP:
+- [Bun](https://bun.sh) 1.4.0 or later
+- A Garmin Connect account
+- A system credential store (see [Token storage](#token-storage))
 
-- `bun install --frozen-lockfile` installs the workspace.
-- `bun run check` runs Biome, strict TypeScript, and all offline tests.
-- `bun run verify` repeats the frozen install, runs the offline check, and audits dependencies.
-- `bun run auth` performs the browser-ticket flow and stores the session in your system credential store.
-- `GARMIN_SERVICE_TICKET=ST-... bun run start` can bootstrap that session without the auth command.
-- `bun run start` starts the stdio MCP server with 22 tools.
-- `GARMIN_E2E=1 bun run live-check 2026-08-30` passed all 15 read operations on 2026-08-31.
-
-The account owner completed the Phase 1 live write check on 2026-08-31. Phase 2 health-history reads also pass offline and live checks. To test writes against the account, set `GARMIN_E2E_WRITES=1`. The check creates and removes a temporary workout and schedule. It does not delete an activity unless you also set `GARMIN_E2E_DELETE_ACTIVITY_ID` to a sacrificial activity ID.
-
-See [the product plan](docs/plan.md) for the intended data coverage, write safeguards, and build order.
-
-## Install
+## Setup
 
 ```sh
-git clone https://github.com/pettersen3008/garmin-mcp.git
+git clone https://github.com/Pettersen3008/garmin-mcp.git
 cd garmin-mcp
 bun install --frozen-lockfile
-```
-
-## Authenticate
-
-Install [Bun](https://bun.sh), then run the interactive setup on macOS, Linux, or Windows:
-
-```sh
 bun run auth
 ```
 
-The command opens Garmin's sign-in page. Complete the login in the browser, copy the final `https://sso.garmin.com/sso/embed?ticket=...` URL, and paste it into the terminal. The SDK exchanges the one-time ticket through Garmin's DI OAuth2 service-ticket grant. It verifies the profile, then stores the OAuth2 session in your system credential store. The request layer uses the stored refresh token to renew expired access tokens. The command does not read or store your Garmin password.
+`bun run auth` opens Garmin's sign-in page in your browser, or prints the URL if no browser opens. After you sign in, copy the final `https://sso.garmin.com/sso/embed?ticket=...` URL and paste it into the terminal. The SDK exchanges the one-time ticket for an OAuth2 session and stores it in your system credential store. The command never reads or stores your Garmin password, and the SDK refreshes expired access tokens on its own.
 
-macOS uses Keychain. Linux requires `secret-tool` from libsecret. Windows encrypts the session with Windows DPAPI for your user account.
-
-If you already have a fresh service ticket, start the MCP once with it:
-
-```sh
-GARMIN_SERVICE_TICKET='ST-...' bun run start
-```
-
-The SDK exchanges the ticket and stores the resulting session in your system credential store. Remove the environment variable after the first successful start. A service ticket is a short-lived credential, so never commit or share it.
+As an alternative, set `GARMIN_SERVICE_TICKET=ST-...` for the first `bun run start`. The server ignores it when a stored session already exists. A service ticket is a short-lived credential, so remove it from your environment after the first start and never commit it.
 
 ## Configure an MCP client
 
-Use the repository path as the working directory. A normal start needs no Garmin credentials in the MCP configuration because it loads the stored Keychain session.
-
 ```json
 {
-  "command": "bun",
-  "args": ["run", "start"],
-  "cwd": "/absolute/path/to/garmin-mcp"
-}
-```
-
-For the first start only, an MCP client may provide `GARMIN_SERVICE_TICKET` in its `env` configuration. Remove it after the session reaches the Keychain. The server does not accept Garmin email or password variables.
-
-```json
-{
-  "command": "bun",
-  "args": ["run", "start"],
-  "cwd": "/absolute/path/to/garmin-mcp",
-  "env": {
-    "GARMIN_SERVICE_TICKET": "ST-..."
+  "mcpServers": {
+    "garmin": {
+      "command": "bun",
+      "args": ["run", "--cwd", "/absolute/path/to/garmin-mcp", "start"]
+    }
   }
 }
 ```
 
-The server writes MCP frames to `stdout`. It writes redacted diagnostics to `stderr`.
+For Claude Code:
 
-## Documentation
+```sh
+claude mcp add garmin -- bun run --cwd /absolute/path/to/garmin-mcp start
+```
 
-See the [delivery plan](docs/plan.md), [roadmap](docs/roadmap.md), [architecture](docs/architecture.md), [ADR 001](docs/decisions/001-private-garmin-adapter.md), [security policy](SECURITY.md), and [MIT license](LICENSE).
+The server writes MCP frames to `stdout` and redacted diagnostics to `stderr`.
+
+## Tools
+
+| Tool | Access | Destructive |
+| --- | --- | --- |
+| `list_activities` | read | no |
+| `get_activity` | read | no |
+| `get_daily_summary` | read | no |
+| `get_heart_rate` | read | no |
+| `get_hrv` | read | no |
+| `get_stress` | read | no |
+| `get_body_battery` | read | no |
+| `get_respiration` | read | no |
+| `get_blood_oxygen` | read | no |
+| `get_body_composition` | read | no |
+| `get_sleep` | read | no |
+| `get_training_status` | read | no |
+| `get_training_readiness` | read | no |
+| `list_workouts` | read | no |
+| `get_workout` | read | no |
+| `edit_activity` | write | yes |
+| `delete_activity` | write | yes |
+| `create_workout` | write | no |
+| `edit_workout` | write | yes |
+| `delete_workout` | write | yes |
+| `schedule_workout` | write | no |
+| `unschedule_workout` | write | yes |
+
+`list_activities` takes a `limit`, optional `from` and `to` dates, and a `start` offset.
+
+Every write tool requires `confirm: true`. The tool descriptions tell the model to set it only after you approve the exact change.
+
+Workout steps can end on time, distance, or the lap button (open). `edit_workout` supports single-segment workouts only.
+
+## Token storage
+
+| OS | Store |
+| --- | --- |
+| macOS | Keychain |
+| Linux | Secret Service through `secret-tool` (install `libsecret-tools`) |
+| Windows | DPAPI-protected file under `%LOCALAPPDATA%\garmin-mcp` (untested) |
+
+To sign out, remove the stored entry:
+
+```sh
+# macOS
+security delete-generic-password -s @pettersen/garmin-connect -a default
+# Linux
+secret-tool clear service @pettersen/garmin-connect account default
+```
+
+On Windows, delete `%LOCALAPPDATA%\garmin-mcp\session`.
+
+## Development
+
+```sh
+bun run check       # Biome, TypeScript, offline tests
+bun run verify      # frozen install, check, bun audit
+bun run live-check  # opt-in check against your own account
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the live-check environment variables.
+
+## Credits
+
+[python-garminconnect](https://github.com/cyberjunky/python-garminconnect) and [Garth](https://github.com/matin/garth) documented the auth flow and endpoints this project builds on.
+
+## License
+
+[MIT](LICENSE).
+
+More: [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), [ADR 001](docs/decisions/001-private-garmin-adapter.md), [security policy](SECURITY.md), [contributing](CONTRIBUTING.md).

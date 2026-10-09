@@ -1,17 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type GarminClient, parseLocalDate } from "@pettersen/garmin-connect";
-import { z } from "zod";
 import { runTool } from "../mcp-result.ts";
-
-const readOnly = {
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: true,
-  readOnlyHint: true,
-};
-const inputSchema = z.object({
-  date: z.string().describe("Calendar date in YYYY-MM-DD format"),
-});
+import { dateInput, readOnly } from "../tool-schemas.ts";
 
 export function registerHealthHistoryTools(
   server: McpServer,
@@ -22,7 +12,7 @@ export function registerHealthHistoryTools(
     {
       annotations: readOnly,
       description: "Get Garmin's nightly HRV summary and samples for a date.",
-      inputSchema,
+      inputSchema: dateInput,
     },
     ({ date }) =>
       runTool(async () => ({
@@ -34,7 +24,7 @@ export function registerHealthHistoryTools(
     {
       annotations: readOnly,
       description: "Get Garmin's daily stress summary and samples for a date.",
-      inputSchema,
+      inputSchema: dateInput,
     },
     ({ date }) =>
       runTool(async () => ({
@@ -46,7 +36,7 @@ export function registerHealthHistoryTools(
     {
       annotations: readOnly,
       description: "Get Garmin's daily Body Battery summary and samples.",
-      inputSchema,
+      inputSchema: dateInput,
     },
     ({ date }) =>
       runTool(async () => ({
@@ -60,7 +50,7 @@ export function registerHealthHistoryTools(
     {
       annotations: readOnly,
       description: "Get Garmin's daily respiration summary and samples.",
-      inputSchema,
+      inputSchema: dateInput,
     },
     ({ date }) =>
       runTool(async () => ({
@@ -74,7 +64,7 @@ export function registerHealthHistoryTools(
     {
       annotations: readOnly,
       description: "Get Garmin's daily blood-oxygen summary and samples.",
-      inputSchema,
+      inputSchema: dateInput,
     },
     ({ date }) =>
       runTool(async () => ({
@@ -88,7 +78,7 @@ export function registerHealthHistoryTools(
     {
       annotations: readOnly,
       description: "Get Garmin's body-composition measurements for a date.",
-      inputSchema,
+      inputSchema: dateInput,
     },
     ({ date }) =>
       runTool(async () => ({

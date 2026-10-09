@@ -1,12 +1,7 @@
+import { assertGarminId } from "../../garmin-id.ts";
 import type { RequestJson } from "../../http/request.ts";
 import { getActivity } from "./get.ts";
 import type { Activity, EditActivityInput } from "./model.ts";
-
-function validateId(id: string): void {
-  if (!/^[1-9]\d*$/.test(id)) {
-    throw new RangeError("Activity id must be a positive decimal string");
-  }
-}
 
 export async function editActivity({
   requestJson,
@@ -15,7 +10,10 @@ export async function editActivity({
   requestJson: RequestJson;
   input: EditActivityInput;
 }): Promise<Activity> {
-  validateId(input.id);
+  assertGarminId(input.id, "Activity id");
+  if (input.name === undefined && input.description === undefined) {
+    throw new RangeError("Activity name or description is required");
+  }
   if (input.name !== undefined && input.name.trim().length === 0) {
     throw new RangeError("Activity name must not be empty");
   }
@@ -41,7 +39,7 @@ export async function deleteActivity({
   requestJson: RequestJson;
   id: string;
 }): Promise<Activity> {
-  validateId(id);
+  assertGarminId(id, "Activity id");
   const activity = await getActivity({ getJson: requestJson, id });
   await requestJson({
     method: "DELETE",

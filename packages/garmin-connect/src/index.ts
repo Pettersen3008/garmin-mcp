@@ -1,4 +1,5 @@
-export type { SessionStore } from "./auth/session.ts";
+export type { GarminSession, SessionStore } from "./auth/session.ts";
+export { createSessionStore } from "./auth/token-store.ts";
 export { createGarminClient, type GarminClient } from "./client.ts";
 export type {
   Activity,
@@ -42,6 +43,8 @@ export type {
 } from "./features/workouts/model.ts";
 export {
   GarminAuthError,
+  GarminError,
+  GarminHttpError,
   GarminInvalidResponseError,
   GarminNetworkError,
   GarminRateLimitError,

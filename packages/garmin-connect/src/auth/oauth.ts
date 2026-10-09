@@ -48,7 +48,10 @@ async function fetchOrThrow(
   init: RequestInit,
 ): Promise<Response> {
   try {
-    const response = await fetchFn(url, init);
+    const response = await fetchFn(url, {
+      ...init,
+      signal: AbortSignal.timeout(15_000),
+    });
     if (!response.ok) {
       throw new GarminAuthError(
         `Garmin authentication failed with HTTP ${response.status}`,
@@ -59,7 +62,9 @@ async function fetchOrThrow(
     if (error instanceof GarminAuthError) {
       throw error;
     }
-    throw new GarminNetworkError("Could not reach Garmin authentication");
+    throw new GarminNetworkError("Could not reach Garmin authentication", {
+      cause: error,
+    });
   }
 }
 
@@ -70,9 +75,10 @@ async function parseOAuth2(
   let value: unknown;
   try {
     value = await response.json();
-  } catch {
+  } catch (error) {
     throw new GarminInvalidResponseError(
       "Garmin returned invalid OAuth 2 JSON",
+      { cause: error },
     );
   }
   const parsed = oauth2ResponseSchema.safeParse(value);

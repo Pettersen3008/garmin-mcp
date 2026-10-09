@@ -65,7 +65,7 @@ describe("Garmin authentication", () => {
     expect(requested).toBe(false);
   });
 
-  it("given each supported platform, when saving a session, then uses its system credential store", () => {
+  it("given each supported platform, when saving a session, then pipes tokens to its credential store instead of argv", () => {
     const session = {
       clientId: "client",
       oauth2: {
@@ -78,14 +78,10 @@ describe("Garmin authentication", () => {
       },
     };
 
-    expect(credentialStoreCommand("darwin", session).command).toBe(
-      "/usr/bin/security",
-    );
-    expect(credentialStoreCommand("linux", session).command).toBe(
-      "secret-tool",
-    );
-    expect(credentialStoreCommand("win32", session).command).toBe(
-      "powershell.exe",
-    );
+    for (const platform of ["darwin", "linux", "win32"] as const) {
+      const command = credentialStoreCommand(platform, session);
+      expect(command.args.join(" ")).not.toContain("access");
+      expect(new TextDecoder().decode(command.stdin)).toContain("access");
+    }
   });
 });

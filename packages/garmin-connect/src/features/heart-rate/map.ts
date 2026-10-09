@@ -5,12 +5,14 @@ import type { DailyHeartRate } from "./model.ts";
 
 const heartRateSchema = z.object({
   calendarDate: z.string(),
-  heartRateValues: z.array(
-    z.tuple([
-      z.number().int().nonnegative().max(8_640_000_000_000_000),
-      z.number().int().positive().nullable(),
-    ]),
-  ),
+  heartRateValues: z
+    .array(
+      z.tuple([
+        z.number().int().nonnegative().max(8_640_000_000_000_000),
+        z.number().int().positive().nullable(),
+      ]),
+    )
+    .nullish(),
   lastSevenDaysAvgRestingHeartRate: z.number().nullable().optional(),
   maxHeartRate: z.number().nullable().optional(),
   minHeartRate: z.number().nullable().optional(),
@@ -37,7 +39,7 @@ export function mapDailyHeartRate(value: unknown): DailyHeartRate {
       : {
           sevenDayAverageRestingBpm: raw.lastSevenDaysAvgRestingHeartRate,
         }),
-    samples: raw.heartRateValues.flatMap(([timestamp, bpm]) =>
+    samples: (raw.heartRateValues ?? []).flatMap(([timestamp, bpm]) =>
       bpm === null
         ? []
         : [{ recordedAt: new Date(timestamp).toISOString(), bpm }],

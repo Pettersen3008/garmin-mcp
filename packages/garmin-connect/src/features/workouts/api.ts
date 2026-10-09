@@ -1,5 +1,6 @@
+import { assertGarminId } from "../../garmin-id.ts";
 import type { GetJson, RequestJson } from "../../http/request.ts";
-import type { LocalDate } from "../../local-date.ts";
+import { type LocalDate, parseLocalDate } from "../../local-date.ts";
 import {
   mapWorkout,
   mapWorkoutId,
@@ -14,12 +15,6 @@ import type {
   WorkoutSummary,
 } from "./model.ts";
 import { buildWorkoutPayload } from "./payload.ts";
-
-function validateId(id: string, label: string): void {
-  if (!/^[1-9]\d*$/.test(id)) {
-    throw new RangeError(`${label} must be a positive decimal string`);
-  }
-}
 
 export async function listWorkouts({
   getJson,
@@ -46,7 +41,7 @@ export async function getWorkout({
   getJson: GetJson;
   id: string;
 }): Promise<Workout> {
-  validateId(id, "Workout id");
+  assertGarminId(id, "Workout id");
   return mapWorkout(await getJson({ path: `/workout-service/workout/${id}` }));
 }
 
@@ -76,7 +71,7 @@ export async function editWorkout({
   id: string;
   workout: WorkoutDraft;
 }): Promise<Workout> {
-  validateId(id, "Workout id");
+  assertGarminId(id, "Workout id");
   await requestJson({
     body: buildWorkoutPayload(workout, id),
     method: "PUT",
@@ -109,7 +104,8 @@ export async function scheduleWorkout({
   workoutId: string;
   date: LocalDate;
 }): Promise<WorkoutSchedule> {
-  validateId(workoutId, "Workout id");
+  assertGarminId(workoutId, "Workout id");
+  parseLocalDate(date);
   const id = mapWorkoutScheduleId(
     await requestJson({
       body: { date },
@@ -122,10 +118,17 @@ export async function scheduleWorkout({
       await requestJson({ path: `/workout-service/schedule/${id}` }),
     );
   } catch (error) {
-    await requestJson({
-      method: "DELETE",
-      path: `/workout-service/schedule/${id}`,
-    });
+    try {
+      await requestJson({
+        method: "DELETE",
+        path: `/workout-service/schedule/${id}`,
+      });
+    } catch (rollbackError) {
+      throw new AggregateError(
+        [error, rollbackError],
+        `Could not read or remove the new workout schedule ${id}`,
+      );
+    }
     throw error;
   }
 }
@@ -137,7 +140,7 @@ export async function unscheduleWorkout({
   requestJson: RequestJson;
   id: string;
 }): Promise<WorkoutSchedule> {
-  validateId(id, "Workout schedule id");
+  assertGarminId(id, "Workout schedule id");
   const schedule = mapWorkoutSchedule(
     await requestJson({ path: `/workout-service/schedule/${id}` }),
   );

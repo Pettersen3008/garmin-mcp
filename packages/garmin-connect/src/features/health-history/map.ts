@@ -52,7 +52,7 @@ export function mapDailyHrv(value: unknown): DailyHrv | null {
   if (value == null) return null;
   const result = hrvSchema.safeParse(value);
   if (!result.success) throw invalid("HRV");
-  const { hrvSummary: summary, hrvReadings = [] } = result.data;
+  const { hrvSummary: summary, hrvReadings } = result.data;
   const baseline = summary.baseline;
   return {
     date: parseLocalDate(summary.calendarDate),
@@ -92,7 +92,9 @@ const stressSchema = z.object({
   calendarDate: z.string(),
   avgStressLevel: measurement,
   maxStressLevel: measurement,
-  stressValuesArray: z.array(z.tuple([epochMilliseconds, z.number().int()])),
+  stressValuesArray: z
+    .array(z.tuple([epochMilliseconds, z.number().int()]))
+    .nullish(),
 });
 
 export function mapDailyStress(value: unknown): DailyStress {
@@ -103,7 +105,7 @@ export function mapDailyStress(value: unknown): DailyStress {
     date: parseLocalDate(raw.calendarDate),
     ...(raw.avgStressLevel == null ? {} : { averageLevel: raw.avgStressLevel }),
     ...(raw.maxStressLevel == null ? {} : { maximumLevel: raw.maxStressLevel }),
-    samples: raw.stressValuesArray.flatMap(([timestamp, level]) =>
+    samples: (raw.stressValuesArray ?? []).flatMap(([timestamp, level]) =>
       level < 0
         ? []
         : [{ recordedAt: new Date(timestamp).toISOString(), level }],
@@ -145,7 +147,9 @@ const respirationSchema = z.object({
   highestRespirationValue: measurement,
   avgWakingRespirationValue: measurement,
   avgSleepRespirationValue: measurement,
-  respirationValuesArray: z.array(z.tuple([epochMilliseconds, z.number()])),
+  respirationValuesArray: z
+    .array(z.tuple([epochMilliseconds, z.number()]))
+    .nullish(),
 });
 
 export function mapDailyRespiration(value: unknown): DailyRespiration {
@@ -166,7 +170,7 @@ export function mapDailyRespiration(value: unknown): DailyRespiration {
     ...(raw.avgSleepRespirationValue == null
       ? {}
       : { averageSleepBreathsPerMinute: raw.avgSleepRespirationValue }),
-    samples: raw.respirationValuesArray.flatMap(
+    samples: (raw.respirationValuesArray ?? []).flatMap(
       ([timestamp, breathsPerMinute]) =>
         breathsPerMinute < 0
           ? []

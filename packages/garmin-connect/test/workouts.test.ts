@@ -109,6 +109,35 @@ describe("workouts", () => {
     });
   });
 
+  it("given a lap-button step, when mapping and building, then round-trips as an open step", () => {
+    const lapButton = { conditionTypeId: 1, conditionTypeKey: "lap.button" };
+    const payload = buildWorkoutPayload({
+      name: "Open warmup",
+      sport: "running",
+      steps: [{ kind: "warmup", end: { kind: "open" } }],
+    });
+
+    expect(payload).toMatchObject({
+      estimatedDurationInSecs: null,
+      workoutSegments: [{ workoutSteps: [{ endCondition: lapButton }] }],
+    });
+    expect(mapWorkout({ ...payload, workoutId: 7 }).steps).toEqual([
+      { kind: "warmup", end: { kind: "open" } },
+    ]);
+  });
+
+  it("given a multi-segment Garmin workout, when mapping, then rejects it instead of flattening", async () => {
+    const { detail } = await fixture();
+    if (typeof detail !== "object" || detail === null) {
+      throw new TypeError("Invalid workout fixture");
+    }
+    const segments = (detail as { workoutSegments: unknown[] }).workoutSegments;
+
+    expect(() =>
+      mapWorkout({ ...detail, workoutSegments: [...segments, ...segments] }),
+    ).toThrow("more than one segment");
+  });
+
   it("given workout operations, when called, then uses Garmin's contracts and reads stored writes", async () => {
     const data = await fixture();
     const requests: Parameters<RequestJson>[0][] = [];

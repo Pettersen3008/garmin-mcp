@@ -59,7 +59,7 @@ import {
   type DiagnosticEvent,
   type Fetch,
 } from "./http/request.ts";
-import type { LocalDate } from "./local-date.ts";
+import { type LocalDate, parseLocalDate } from "./local-date.ts";
 
 export type GarminClient = {
   activities: {
@@ -120,7 +120,6 @@ export async function createGarminClient(
   const fetchFn = options.fetch ?? fetch;
   const now = options.now ?? Date.now;
   const serviceTicket = options.serviceTicket;
-  const saveBootstrappedSession = serviceTicket !== undefined;
   const session =
     serviceTicket !== undefined
       ? await exchangeTicket({
@@ -134,67 +133,72 @@ export async function createGarminClient(
       "No Garmin session found. Set GARMIN_SERVICE_TICKET once or run bun run auth",
     );
   }
-  let activeSession = session;
-  const activeSessionStore: SessionStore = saveBootstrappedSession
-    ? {
-        async load() {
-          return activeSession;
-        },
-        async save(nextSession) {
-          activeSession = nextSession;
-        },
-      }
-    : sessionStore;
-  const getJson = createRequestJson({
+  // A ticket session is persisted only after the profile read proves it works.
+  let latestSession = session;
+  let persist = serviceTicket === undefined;
+  const requestJson = createRequestJson({
     ...(options.diagnostics ? { diagnostics: options.diagnostics } : {}),
     fetch: fetchFn,
     now,
-    session: activeSession,
-    sessionStore: activeSessionStore,
+    session,
+    sessionStore: {
+      async save(nextSession) {
+        latestSession = nextSession;
+        if (persist) {
+          await sessionStore.save(nextSession);
+        }
+      },
+    },
   });
-  const displayName = await getProfileDisplayName(getJson);
-  if (saveBootstrappedSession) {
-    await sessionStore.save(activeSession);
+  const displayName = await getProfileDisplayName(requestJson);
+  if (!persist) {
+    await sessionStore.save(latestSession);
+    persist = true;
   }
+  const dated =
+    <T>(get: (input: { date: LocalDate }) => Promise<T>) =>
+    async (input: { date: LocalDate }) =>
+      get({ date: parseLocalDate(input.date) });
 
   return {
     activities: {
-      delete: ({ id }) => deleteActivity({ requestJson: getJson, id }),
-      edit: (input) => editActivity({ requestJson: getJson, input }),
-      get: ({ id }) => getActivity({ getJson, id }),
-      list: (input) => listActivities({ getJson, input }),
+      delete: ({ id }) => deleteActivity({ requestJson, id }),
+      edit: (input) => editActivity({ requestJson, input }),
+      get: ({ id }) => getActivity({ getJson: requestJson, id }),
+      list: (input) => listActivities({ getJson: requestJson, input }),
     },
     dailySummary: {
-      get: (input) => getDailySummary(getJson, displayName, input),
+      get: dated((input) => getDailySummary(requestJson, displayName, input)),
     },
     heartRate: {
-      get: (input) => getDailyHeartRate(getJson, displayName, input),
+      get: dated((input) => getDailyHeartRate(requestJson, displayName, input)),
     },
     health: {
-      getBloodOxygen: (input) => getDailyBloodOxygen(getJson, input),
-      getBodyBattery: (input) => getDailyBodyBattery(getJson, input),
-      getBodyComposition: (input) => getDailyBodyComposition(getJson, input),
-      getHrv: (input) => getDailyHrv(getJson, input),
-      getRespiration: (input) => getDailyRespiration(getJson, input),
-      getStress: (input) => getDailyStress(getJson, input),
+      getBloodOxygen: dated((input) => getDailyBloodOxygen(requestJson, input)),
+      getBodyBattery: dated((input) => getDailyBodyBattery(requestJson, input)),
+      getBodyComposition: dated((input) =>
+        getDailyBodyComposition(requestJson, input),
+      ),
+      getHrv: dated((input) => getDailyHrv(requestJson, input)),
+      getRespiration: dated((input) => getDailyRespiration(requestJson, input)),
+      getStress: dated((input) => getDailyStress(requestJson, input)),
     },
     sleep: {
-      get: (input) => getSleep(getJson, displayName, input),
+      get: dated((input) => getSleep(requestJson, displayName, input)),
     },
     training: {
-      getReadiness: (input) => getTrainingReadiness(getJson, input),
-      getStatus: (input) => getTrainingStatus(getJson, input),
+      getReadiness: dated((input) => getTrainingReadiness(requestJson, input)),
+      getStatus: dated((input) => getTrainingStatus(requestJson, input)),
     },
     workouts: {
-      create: (workout) => createWorkout({ requestJson: getJson, workout }),
-      delete: ({ id }) => deleteWorkout({ requestJson: getJson, id }),
-      edit: ({ id, workout }) =>
-        editWorkout({ requestJson: getJson, id, workout }),
-      get: ({ id }) => getWorkout({ getJson, id }),
-      list: ({ limit }) => listWorkouts({ getJson, limit }),
+      create: (workout) => createWorkout({ requestJson, workout }),
+      delete: ({ id }) => deleteWorkout({ requestJson, id }),
+      edit: ({ id, workout }) => editWorkout({ requestJson, id, workout }),
+      get: ({ id }) => getWorkout({ getJson: requestJson, id }),
+      list: ({ limit }) => listWorkouts({ getJson: requestJson, limit }),
       schedule: ({ workoutId, date }) =>
-        scheduleWorkout({ requestJson: getJson, workoutId, date }),
-      unschedule: ({ id }) => unscheduleWorkout({ requestJson: getJson, id }),
+        scheduleWorkout({ requestJson, workoutId, date }),
+      unschedule: ({ id }) => unscheduleWorkout({ requestJson, id }),
     },
   };
 }

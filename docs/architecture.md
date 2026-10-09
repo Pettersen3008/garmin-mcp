@@ -16,15 +16,15 @@ The MCP package never imports an SDK internal file. Feature mappers have no I/O 
 
 ## Authentication
 
-The setup command opens Garmin SSO in the user's browser. The user gives the command the one-time service-ticket URL after login. As an alternative bootstrap, the MCP process accepts the ticket through `GARMIN_SERVICE_TICKET`. The SDK posts the ticket to Garmin's DI OAuth2 token endpoint with the service-ticket grant and the mobile client identifier. Garmin returns an OAuth2 access token, a refresh token, and their lifetimes. The SDK verifies the account profile, then stores the client identifier and OAuth2 tokens in the system credential store.
+The setup command opens Garmin SSO in the browser. You give the command the one-time service-ticket URL after login. As an alternative bootstrap, the MCP process accepts the ticket through `GARMIN_SERVICE_TICKET`. The SDK posts the ticket to Garmin's DI OAuth2 token endpoint with the service-ticket grant and the mobile client identifier. Garmin returns an OAuth2 access token, a refresh token, and their lifetimes. The SDK verifies the account profile, then stores the client identifier and OAuth2 tokens in the system credential store.
 
 The server never accepts a Garmin email address or password. Remove `GARMIN_SERVICE_TICKET` from the MCP configuration after the first successful start. Before an access token expires, or after Garmin rejects one, the SDK posts the stored refresh token to the same DI OAuth2 endpoint with the refresh-token grant. It replaces the stored OAuth2 session with the returned tokens. An expired refresh token requires browser SSO again.
 
-Garmin does not document or support this consumer DI OAuth2 flow. The 15-operation read check passed on 2026-08-31 using data for 2026-08-30. The account owner also completed the activity and workout live write check.
+Refresh is single-flight: concurrent requests that need a new token share one refresh call. The SDK persists the refreshed session back to the credential store. Garmin does not document or support this consumer DI OAuth2 flow.
 
 ## Private endpoints
 
-The first release uses these endpoint families:
+The SDK uses these endpoint families:
 
 - `activitylist-service` and `activity-service`
 - `workout-service`
@@ -43,7 +43,15 @@ The SDK accepts only internal endpoint paths. It rejects query strings, fragment
 
 Diagnostics contain an event kind, an endpoint path, and an optional HTTP status. They never contain headers, query values, response bodies, profile names, or tokens. The stdio server reserves `stdout` for MCP frames.
 
-macOS uses Keychain. Linux uses `secret-tool`, which libsecret provides. Windows encrypts a session file with DPAPI for the current user. Linux users must install libsecret before they run `bun run auth`.
+The session store depends on the operating system:
+
+- macOS: Keychain through `/usr/bin/security`. The SDK passes the secret on stdin, never in argv.
+- Linux: Secret Service through `secret-tool`, from the `libsecret-tools` package.
+- Windows: a DPAPI-protected file at `%LOCALAPPDATA%\garmin-mcp\session`, written through `powershell.exe`. This path is untested.
+
+## Tools and writes
+
+The server registers 22 tools: 15 read and 7 write. Every write tool requires `confirm: true`. After a successful create or edit, the SDK reads the resource back. The project runs from source only. It has no build step, no npm package, and no CI.
 
 ## Official access
 

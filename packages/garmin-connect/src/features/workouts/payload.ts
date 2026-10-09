@@ -32,6 +32,7 @@ const targets = {
 };
 
 const conditions = {
+  open: { conditionTypeId: 1, conditionTypeKey: "lap.button" },
   time: { conditionTypeId: 2, conditionTypeKey: "time" },
   distance: { conditionTypeId: 3, conditionTypeKey: "distance" },
   iterations: { conditionTypeId: 7, conditionTypeKey: "iterations" },
@@ -105,15 +106,17 @@ function executable(
   order: number,
 ): Record<string, unknown> {
   const end =
-    step.end.kind === "time"
-      ? {
-          endCondition: conditions.time,
-          endConditionValue: positive(step.end.seconds, "Step duration"),
-        }
-      : {
-          endCondition: conditions.distance,
-          endConditionValue: positive(step.end.meters, "Step distance"),
-        };
+    step.end.kind === "open"
+      ? { endCondition: conditions.open }
+      : step.end.kind === "time"
+        ? {
+            endCondition: conditions.time,
+            endConditionValue: positive(step.end.seconds, "Step duration"),
+          }
+        : {
+            endCondition: conditions.distance,
+            endConditionValue: positive(step.end.meters, "Step distance"),
+          };
   return {
     stepId: order,
     stepOrder: order,
@@ -175,7 +178,7 @@ function total(input: WorkoutStep[], kind: "time" | "distance"): number | null {
       return null;
     } else if (step.end.kind === "time") {
       result += step.end.seconds;
-    } else {
+    } else if (step.end.kind === "distance") {
       result += step.end.meters;
     }
   }

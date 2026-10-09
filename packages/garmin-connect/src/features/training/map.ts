@@ -19,9 +19,13 @@ const statusValueSchema = z.object({
 });
 
 const statusSchema = z.object({
-  mostRecentTrainingStatus: z.object({
-    latestTrainingStatusData: z.record(z.string(), statusValueSchema),
-  }),
+  mostRecentTrainingStatus: z
+    .object({
+      latestTrainingStatusData: z
+        .record(z.string(), statusValueSchema)
+        .nullish(),
+    })
+    .nullish(),
 });
 
 const readinessValueSchema = z.object({
@@ -42,7 +46,7 @@ export function mapTrainingStatus(value: unknown): TrainingStatus | null {
     );
   }
   const statuses = Object.values(
-    result.data.mostRecentTrainingStatus.latestTrainingStatusData,
+    result.data.mostRecentTrainingStatus?.latestTrainingStatusData ?? {},
   );
   const raw =
     statuses.find(({ primaryTrainingDevice }) => primaryTrainingDevice) ??

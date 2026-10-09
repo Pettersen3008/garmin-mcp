@@ -17,10 +17,13 @@ export type Activity = {
   aerobicTrainingEffect?: number;
 };
 
-export type EditActivityInput =
-  | { id: string; name: string; description?: string }
-  | { id: string; name?: never; description: string };
+export type EditActivityInput = {
+  id: string;
+  name?: string | undefined;
+  description?: string | undefined;
+};
 
-export type ListActivitiesInput =
-  | { limit: number; from?: never; to?: never }
-  | { limit: number; from: LocalDate; to?: LocalDate };
+export type ListActivitiesInput = {
+  limit: number;
+  start?: number | undefined;
+} & ({ from?: never; to?: never } | { from: LocalDate; to?: LocalDate });
