@@ -1,0 +1,79 @@
+{
+  "list": [
+    {
+      "workoutId": 7,
+      "workoutName": "Synthetic intervals",
+      "description": "Anonymized workout",
+      "sportType": { "sportTypeId": 1, "sportTypeKey": "running" },
+      "estimatedDurationInSecs": 1500
+    }
+  ],
+  "detail": {
+    "workoutId": 7,
+    "workoutName": "Synthetic intervals",
+    "description": "Anonymized workout",
+    "sportType": { "sportTypeId": 1, "sportTypeKey": "running" },
+    "estimatedDurationInSecs": 1500,
+    "workoutSegments": [
+      {
+        "segmentOrder": 1,
+        "sportType": { "sportTypeId": 1, "sportTypeKey": "running" },
+        "workoutSteps": [
+          {
+            "stepType": { "stepTypeId": 1, "stepTypeKey": "warmup" },
+            "type": "ExecutableStepDTO",
+            "endCondition": {
+              "conditionTypeId": 2,
+              "conditionTypeKey": "time"
+            },
+            "endConditionValue": 600,
+            "targetType": {
+              "workoutTargetTypeId": 1,
+              "workoutTargetTypeKey": "no.target"
+            }
+          },
+          {
+            "stepType": { "stepTypeId": 6, "stepTypeKey": "repeat" },
+            "type": "RepeatGroupDTO",
+            "numberOfIterations": 3,
+            "workoutSteps": [
+              {
+                "stepType": { "stepTypeId": 3, "stepTypeKey": "interval" },
+                "type": "ExecutableStepDTO",
+                "endCondition": {
+                  "conditionTypeId": 3,
+                  "conditionTypeKey": "distance"
+                },
+                "endConditionValue": 400,
+                "targetType": {
+                  "workoutTargetTypeId": 4,
+                  "workoutTargetTypeKey": "heart.rate.zone"
+                },
+                "targetValueOne": 4,
+                "targetValueTwo": null
+              },
+              {
+                "stepType": { "stepTypeId": 4, "stepTypeKey": "recovery" },
+                "type": "ExecutableStepDTO",
+                "endCondition": {
+                  "conditionTypeId": 2,
+                  "conditionTypeKey": "time"
+                },
+                "endConditionValue": 120,
+                "targetType": {
+                  "workoutTargetTypeId": 1,
+                  "workoutTargetTypeKey": "no.target"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "schedule": {
+    "workoutScheduleId": 9,
+    "workout": { "workoutId": 7 },
+    "calendarDate": "2026-09-07"
+  }
+}

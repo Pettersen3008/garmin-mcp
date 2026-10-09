@@ -55,6 +55,20 @@ function optionalNumber(
   return value;
 }
 
+function optionalString(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = record[key];
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    invalid(key);
+  }
+  return value;
+}
+
 export function mapActivity(input: unknown): Activity {
   const record = requiredRecord(input, "activity");
   const summary =
@@ -73,6 +87,7 @@ export function mapActivity(input: unknown): Activity {
   };
 
   const fields = {
+    description: optionalString(record, "description"),
     distanceMeters: optionalNumber(summary, "distance"),
     durationSeconds: optionalNumber(summary, "duration"),
     movingDurationSeconds: optionalNumber(summary, "movingDuration"),

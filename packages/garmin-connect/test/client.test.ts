@@ -7,7 +7,7 @@ import { parseLocalDate } from "../src/local-date.ts";
 const fixture = (name: string): Promise<unknown> =>
   Bun.file(new URL(`fixtures/garmin/${name}.json`, import.meta.url)).json();
 
-it("given a stored session and Garmin fixtures, when using the public client, then all six operations cross the authenticated request boundary", async () => {
+it("given a stored session and Garmin fixtures, when using the public client, then all reads cross the authenticated request boundary", async () => {
   const activityResponses = await fixture("activity-responses");
   if (
     typeof activityResponses !== "object" ||
@@ -33,6 +33,28 @@ it("given a stored session and Garmin fixtures, when using the public client, th
       await fixture("sleep"),
     ],
     [
+      "/wellness-service/wellness/dailyHeartRate/anonymous",
+      await fixture("heart-rate"),
+    ],
+    ["/hrv-service/hrv/2026-08-30", await fixture("hrv")],
+    [
+      "/wellness-service/wellness/dailyStress/2026-08-30",
+      await fixture("stress"),
+    ],
+    [
+      "/wellness-service/wellness/bodyBattery/reports/daily",
+      await fixture("body-battery"),
+    ],
+    [
+      "/wellness-service/wellness/daily/respiration/2026-08-30",
+      await fixture("respiration"),
+    ],
+    [
+      "/wellness-service/wellness/daily/spo2/2026-08-30",
+      await fixture("blood-oxygen"),
+    ],
+    ["/weight-service/weight/dateRange", await fixture("body-composition")],
+    [
       "/metrics-service/metrics/trainingstatus/aggregated/2026-08-30",
       await fixture("training-status"),
     ],
@@ -52,7 +74,7 @@ it("given a stored session and Garmin fixtures, when using the public client, th
     return Response.json(response);
   };
   const session: GarminSession = {
-    oauth1: { oauthToken: "one", oauthTokenSecret: "secret" },
+    clientId: "GARMIN_CONNECT_MOBILE_ANDROID_DI_2025Q2",
     oauth2: {
       accessToken: "two",
       expiresAtEpochSeconds: 2_000_000_000,
@@ -78,29 +100,31 @@ it("given a stored session and Garmin fixtures, when using the public client, th
     client.activities.list({ limit: 1 }),
     client.activities.get({ id: "42" }),
     client.dailySummary.get({ date }),
+    client.heartRate.get({ date }),
+    client.health.getHrv({ date }),
+    client.health.getStress({ date }),
+    client.health.getBodyBattery({ date }),
+    client.health.getRespiration({ date }),
+    client.health.getBloodOxygen({ date }),
+    client.health.getBodyComposition({ date }),
     client.sleep.get({ date }),
     client.training.getStatus({ date }),
     client.training.getReadiness({ date }),
   ]);
 
-  expect(results).toHaveLength(6);
+  expect(results).toHaveLength(13);
   expect(results.every((result) => result !== null)).toBe(true);
 });
 
 it("given a service ticket, when creating the client, then exchanges and stores a session", async () => {
   let savedSession: GarminSession | undefined;
-  const requestedUrls: string[] = [];
-  const fetchTicket: Fetch = async (input) => {
+  const requests: Request[] = [];
+  const fetchTicket: Fetch = async (input, init) => {
     if (!(input instanceof URL)) {
       throw new TypeError("Expected a URL request");
     }
-    requestedUrls.push(input.toString());
-    if (input.pathname.endsWith("/preauthorized")) {
-      return new Response(
-        "oauth_token=oauth-one&oauth_token_secret=secret-one",
-      );
-    }
-    if (input.pathname.endsWith("/exchange/user/2.0")) {
+    requests.push(new Request(input.toString(), init));
+    if (input.pathname.endsWith("/di-oauth2-service/oauth/token")) {
       return Response.json({
         access_token: "access-two",
         expires_in: 3600,
@@ -131,6 +155,6 @@ it("given a service ticket, when creating the client, then exchanges and stores 
   });
 
   expect(savedSession?.oauth2.accessToken).toBe("access-two");
-  expect(requestedUrls).toHaveLength(3);
-  expect(requestedUrls[0]).toContain("ticket=ST-fixture");
+  expect(requests).toHaveLength(2);
+  expect(await requests[0]?.text()).toContain("service_ticket=ST-fixture");
 });

@@ -1,10 +1,10 @@
 import { createInterface } from "node:readline/promises";
 import { GarminAuthError } from "../http/errors.ts";
-import { createGetJson } from "../http/request.ts";
+import { createRequestJson } from "../http/request.ts";
 import { exchangeTicket } from "./oauth.ts";
 import { getProfileDisplayName } from "./profile.ts";
 import type { GarminSession } from "./session.ts";
-import { createKeychainSessionStore } from "./token-store.ts";
+import { createSessionStore } from "./token-store.ts";
 
 export function createGarminSignInUrl(): URL {
   const base = "https://sso.garmin.com/sso";
@@ -44,7 +44,19 @@ export function parseGarminTicket(value: string): string {
 
 export async function runInteractiveLogin(): Promise<void> {
   const signInUrl = createGarminSignInUrl();
-  const opener = Bun.spawn(["/usr/bin/open", signInUrl.toString()], {
+  const openerCommand =
+    process.platform === "darwin"
+      ? ["/usr/bin/open", signInUrl.toString()]
+      : process.platform === "win32"
+        ? [
+            "powershell.exe",
+            "-NoProfile",
+            "-Command",
+            "Start-Process",
+            signInUrl.toString(),
+          ]
+        : ["xdg-open", signInUrl.toString()];
+  const opener = Bun.spawn(openerCommand, {
     stderr: "ignore",
     stdout: "ignore",
   });
@@ -62,7 +74,7 @@ export async function runInteractiveLogin(): Promise<void> {
   const redirectUrl = await terminal.question("Redirect URL: ");
   terminal.close();
 
-  const sessionStore = createKeychainSessionStore();
+  const sessionStore = createSessionStore();
   let session = await exchangeTicket({
     fetch,
     now: Date.now,
@@ -76,7 +88,7 @@ export async function runInteractiveLogin(): Promise<void> {
       session = nextSession;
     },
   };
-  const getJson = createGetJson({
+  const getJson = createRequestJson({
     fetch,
     now: Date.now,
     session,
@@ -84,7 +96,7 @@ export async function runInteractiveLogin(): Promise<void> {
   });
   await getProfileDisplayName(getJson);
   await sessionStore.save(session);
-  console.error("Garmin session stored in the macOS Keychain.");
+  console.error("Garmin session stored in the system credential store.");
 }
 
 if (import.meta.main) {

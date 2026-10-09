@@ -1,7 +1,5 @@
 # Contributing
 
-This is currently a personal, private integration. Discuss proposed changes
-with the maintainer before starting substantial work.
+Run `bun run check` before you open a pull request. Do not add Garmin credentials, tokens, or personal activity data to the repository.
 
-Run `bun run check` before opening a pull request. Never commit credentials,
-Garmin account data, or raw production responses.
+Keep the MCP tools independent from undocumented Garmin endpoint details. Add anonymized fixtures and an offline test for each changed endpoint contract.

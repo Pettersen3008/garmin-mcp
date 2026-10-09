@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createGarminSignInUrl, parseGarminTicket } from "../src/auth/login.ts";
 import { exchangeTicket } from "../src/auth/oauth.ts";
+import { credentialStoreCommand } from "../src/auth/token-store.ts";
 import type { Fetch } from "../src/http/request.ts";
 
 describe("Garmin authentication", () => {
@@ -12,11 +13,6 @@ describe("Garmin authentication", () => {
       }
       const request = new Request(input.toString(), init);
       requests.push(request);
-      if (requests.length === 1) {
-        return new Response(
-          "oauth_token=oauth-one&oauth_token_secret=secret-one",
-        );
-      }
       return Response.json({
         access_token: "access-two",
         expires_in: 3600,
@@ -37,9 +33,15 @@ describe("Garmin authentication", () => {
 
     expect(createGarminSignInUrl().origin).toBe("https://sso.garmin.com");
     expect(requests.map((request) => request.url)).toEqual([
-      "https://connectapi.garmin.com/oauth-service/oauth/preauthorized?ticket=ST-example&login-url=https%3A%2F%2Fmobile.integration.garmin.com%2Fgcm%2Fandroid&accepts-mfa-tokens=true",
-      "https://connectapi.garmin.com/oauth-service/oauth/exchange/user/2.0",
+      "https://diauth.garmin.com/di-oauth2-service/oauth/token",
     ]);
+    expect(requests[0]?.method).toBe("POST");
+    expect(await requests[0]?.text()).toBe(
+      "client_id=GARMIN_CONNECT_MOBILE_ANDROID_DI_2025Q2&service_ticket=ST-example&grant_type=https%3A%2F%2Fconnectapi.garmin.com%2Fdi-oauth2-service%2Foauth%2Fgrant%2Fservice_ticket&service_url=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed",
+    );
+    expect(requests[0]?.headers.get("authorization")).toBe(
+      `Basic ${Buffer.from("GARMIN_CONNECT_MOBILE_ANDROID_DI_2025Q2:").toString("base64")}`,
+    );
     expect(session.oauth2).toMatchObject({
       accessToken: "access-two",
       expiresAtEpochSeconds: 1_800_003_600,
@@ -61,5 +63,29 @@ describe("Garmin authentication", () => {
     ).rejects.toThrow("Invalid Garmin service ticket");
 
     expect(requested).toBe(false);
+  });
+
+  it("given each supported platform, when saving a session, then uses its system credential store", () => {
+    const session = {
+      clientId: "client",
+      oauth2: {
+        accessToken: "access",
+        expiresAtEpochSeconds: 1,
+        refreshToken: "refresh",
+        refreshTokenExpiresAtEpochSeconds: 2,
+        scope: "scope",
+        tokenType: "bearer",
+      },
+    };
+
+    expect(credentialStoreCommand("darwin", session).command).toBe(
+      "/usr/bin/security",
+    );
+    expect(credentialStoreCommand("linux", session).command).toBe(
+      "secret-tool",
+    );
+    expect(credentialStoreCommand("win32", session).command).toBe(
+      "powershell.exe",
+    );
   });
 });

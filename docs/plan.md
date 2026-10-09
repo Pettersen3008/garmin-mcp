@@ -1,60 +1,57 @@
-# First-release plan
+# Product plan
 
-The first release is a personal, read-only MCP server over private Garmin Connect endpoints. The code can ship for personal use after the live account check. It should not be published as a stable Garmin integration.
+Garmin MCP is an unofficial MCP server for managing one person's Garmin Connect account. It reads and writes the Garmin Connect data needed for normal personal use. Garmin does not support the consumer endpoints that the project uses, so the project does not promise endpoint compatibility.
 
-## Release checks
+## What feature complete means
 
-These checks define the release:
+Feature complete means that the MCP covers these Garmin Connect families when the account and the current private endpoints support them:
 
-- `bun install --frozen-lockfile` installs the workspace.
-- `bun run check` passes without network access.
-- `bun run auth` or a one-time `GARMIN_SERVICE_TICKET` stores a Garmin session in the macOS Keychain without reading the Garmin password.
-- The MCP server loads the stored session without Garmin credentials in its configuration.
-- Six read-only tools return structured content.
-- SDK mappers fail on required-field drift with redacted errors.
-- `GARMIN_E2E=1 bun run live-check <date>` reaches all six private operations on a real account.
+- activities, including list, detail, edit, delete, and upload
+- health and body data, including daily summaries, sleep, stress, Body Battery, heart-rate data, HRV, body composition, and structured Health Snapshot data when Garmin exposes it without FIT parsing
+- training, including training status, readiness, recovery, workouts, training plans, calendar scheduling, and goals
+- gear, including list, create, edit, assign, and retire
+- courses and routes, including list, create, edit, delete, and send to a device when Garmin supports it
 
-## Shipped now
+The project does not need FIT parsing, a database, or an HTTP server. Add a domain only when it is visible in Garmin Connect and supports a real personal workflow.
 
-### Foundation
+## Current state
 
-Status: complete.
+The authentication path and 15 read operations work against a personal account:
 
-- The root pins Bun 1.4.0.
-- The workspace contains only `@pettersen/garmin-connect` and `@pettersen/garmin-mcp`.
-- `bun run check` runs Biome, strict TypeScript, and offline tests.
-- GitHub Actions runs the same check after `bun install --frozen-lockfile`.
+- activity list and detail
+- daily summary
+- daily heart rate
+- HRV
+- stress
+- Body Battery
+- respiration
+- blood oxygen
+- body composition
+- sleep summary
+- training status
+- training readiness
+- workout list
+- workout detail
 
-### SDK read path
+`GARMIN_E2E=1 bun run live-check 2026-08-30` passed all 15 read operations on 2026-08-31. The session lives in the system credential store and refreshes through Garmin's DI OAuth2 flow.
 
-Status: complete against offline fixtures.
+The account owner completed the activity and workout live write check on 2026-08-31. Phase 2 health and body-history reads pass offline and live checks.
 
-- `bun run auth` opens Garmin SSO, accepts the browser redirect URL, exchanges the one-time ticket, verifies the profile, and saves the session in the macOS Keychain.
-- The MCP can perform the same exchange once from `GARMIN_SERVICE_TICKET`, then start from the stored session without that variable.
-- The request layer handles bearer auth, refresh, one safe retry, timeout, and redacted errors.
-- The public client exposes activity list, activity detail, daily summary, sleep, training status, and training readiness.
-- Feature mappers accept `unknown` and return stable, unit-named models.
+## Write safety
 
-### MCP tools
+Every write tool must describe its target and changed fields. The tool input must include `confirm: true`. Delete and retire tools must also require the target identifier. The tool reads the resource after a successful write and returns the stored result.
 
-Status: complete against a fixture SDK.
+If Garmin supports an idempotency key or version precondition, the SDK uses it. If it does not, the tool states that retrying can repeat the action. The MCP never stores a Garmin password or exposes tokens in tool results or diagnostics.
 
-- The server registers `list_activities`, `get_activity`, `get_daily_summary`, `get_sleep`, `get_training_status`, and `get_training_readiness`.
-- Zod validates every tool input.
-- Tool code depends only on the public SDK.
-- Tool failures map to stable result codes.
+## Delivery rules
 
-## Open check
+Each feature adds one stable SDK model, fixture-backed mapper tests, request-contract tests, MCP schemas, and a live check. A feature is done only after the live check proves both its intended read and write behaviour. The MCP exposes stable fields, not raw Garmin JSON.
 
-### Live Garmin validation
+## Build order
 
-Status: pending a real account.
-
-Run these commands on the target Mac:
-
-```sh
-bun run auth
-GARMIN_E2E=1 bun run live-check 2026-08-30
-```
-
-If Garmin changed a payload, update only the matching feature mapper and its anonymized fixture. Do not widen the MCP tool shape to absorb raw Garmin fields.
+1. Add activity editing and deletion, plus workout list, detail, create, edit, delete, and calendar scheduling. These are the highest-value write workflows.
+2. Add health and body-history reads. Use this data to support recovery and sleep questions without inventing a coaching layer first.
+3. Add gear management and activity-to-gear assignment.
+4. Add courses and routes, including supported device delivery.
+5. Add goals and the remaining Garmin Connect calendar data.
+6. Run the full live check after Garmin changes its web or mobile clients. Repair only the affected feature mapper or request contract.

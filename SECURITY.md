@@ -1,14 +1,5 @@
 # Security policy
 
-## Supported versions
+Do not open a public issue for a credential leak, token exposure, or a way to access another Garmin account. Email the repository owner through GitHub instead.
 
-Only the latest version on `main` receives security fixes.
-
-## Reporting a vulnerability
-
-Do not open a public issue or include credentials, Garmin account data, or
-session material in a report. Use a private GitHub security advisory for this
-repository, or contact the repository owner directly through GitHub.
-
-We will acknowledge reports within seven days and coordinate a fix before any
-public disclosure.
+Do not include Garmin service tickets, OAuth tokens, or personal activity data in an issue. Revoke exposed tokens by removing the stored session and running `bun run auth` again.

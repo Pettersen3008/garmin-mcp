@@ -19,11 +19,29 @@ const listInput = z
     message: "from is required when to is present",
   });
 const activityIdInput = z.object({ id: z.string().regex(/^[1-9]\d*$/) });
+const editInput = z
+  .object({
+    confirm: z.literal(true),
+    description: z.string().optional(),
+    id: z.string().regex(/^[1-9]\d*$/),
+    name: z.string().trim().min(1).optional(),
+  })
+  .refine(
+    ({ description, name }) => description !== undefined || name !== undefined,
+    { message: "name or description is required" },
+  );
+const deleteInput = activityIdInput.extend({ confirm: z.literal(true) });
 const readOnly = {
   destructiveHint: false,
   idempotentHint: true,
   openWorldHint: true,
   readOnlyHint: true,
+};
+const write = {
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+  readOnlyHint: false,
 };
 
 export function registerActivityTools(
@@ -61,5 +79,50 @@ export function registerActivityTools(
     },
     ({ id }) =>
       runTool(async () => ({ activity: await garmin.activities.get({ id }) })),
+  );
+  server.registerTool(
+    "edit_activity",
+    {
+      annotations: write,
+      description:
+        "Edit the named Garmin activity's name or description, then return Garmin's stored activity. Requires confirm=true.",
+      inputSchema: editInput,
+    },
+    (input) =>
+      runTool(async () => {
+        if (input.name === undefined) {
+          if (input.description === undefined) {
+            throw new RangeError("Activity name or description is required");
+          }
+          return {
+            activity: await garmin.activities.edit({
+              id: input.id,
+              description: input.description,
+            }),
+          };
+        }
+        return {
+          activity: await garmin.activities.edit({
+            id: input.id,
+            name: input.name,
+            ...(input.description === undefined
+              ? {}
+              : { description: input.description }),
+          }),
+        };
+      }),
+  );
+  server.registerTool(
+    "delete_activity",
+    {
+      annotations: { ...write, destructiveHint: true },
+      description:
+        "Permanently delete the Garmin activity identified by id. Returns the activity captured before deletion. Requires confirm=true.",
+      inputSchema: deleteInput,
+    },
+    ({ id }) =>
+      runTool(async () => ({
+        deletedActivity: await garmin.activities.delete({ id }),
+      })),
   );
 }

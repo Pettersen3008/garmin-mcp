@@ -2,8 +2,12 @@ import { describe, expect, it } from "bun:test";
 import { getActivity } from "../src/features/activities/get.ts";
 import { listActivities } from "../src/features/activities/list.ts";
 import { mapActivities, mapActivity } from "../src/features/activities/map.ts";
+import {
+  deleteActivity,
+  editActivity,
+} from "../src/features/activities/mutate.ts";
 import { GarminInvalidResponseError } from "../src/http/errors.ts";
-import type { GetJson } from "../src/http/request.ts";
+import type { GetJson, RequestJson } from "../src/http/request.ts";
 import { parseLocalDate } from "../src/local-date.ts";
 
 const fixtureUrl = new URL(
@@ -133,5 +137,37 @@ describe("activities", () => {
     ).rejects.toThrow(RangeError);
     await expect(getActivity({ getJson, id: "0" })).rejects.toThrow(RangeError);
     expect(calls).toBe(0);
+  });
+
+  it("Given confirmed activity changes, When editing and deleting, Then uses Garmin's contracts and reads the activity", async () => {
+    const requests: Parameters<RequestJson>[0][] = [];
+    const requestJson: RequestJson = async (request) => {
+      requests.push(request);
+      return request.method === undefined
+        ? {
+            activityId: 42,
+            activityName: "Morning run",
+            activityTypeDTO: { typeKey: "running" },
+            summaryDTO: { startTimeLocal: "2025-01-02 07:30:00" },
+          }
+        : undefined;
+    };
+
+    await editActivity({
+      requestJson,
+      input: { id: "42", name: "Morning run" },
+    });
+    await deleteActivity({ requestJson, id: "42" });
+
+    expect(requests).toEqual([
+      {
+        body: { activityId: "42", activityName: "Morning run" },
+        method: "PUT",
+        path: "/activity-service/activity/42",
+      },
+      { path: "/activity-service/activity/42" },
+      { path: "/activity-service/activity/42" },
+      { method: "DELETE", path: "/activity-service/activity/42" },
+    ]);
   });
 });

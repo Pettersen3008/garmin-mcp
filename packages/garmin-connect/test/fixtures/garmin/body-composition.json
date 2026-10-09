@@ -1,0 +1,25 @@
+{
+  "startDate": "2026-08-30",
+  "endDate": "2026-08-30",
+  "dateWeightList": [
+    {
+      "samplePk": 1,
+      "calendarDate": "2026-08-30",
+      "timestampGMT": "2026-08-30T06:30:00.0",
+      "weight": 73500,
+      "bmi": 22.7,
+      "bodyFat": 16.2,
+      "bodyWater": 58.4,
+      "boneMass": 3200,
+      "muscleMass": 58400,
+      "physiqueRating": 6,
+      "visceralFat": 5,
+      "metabolicAge": 34,
+      "sourceType": "INDEX_SCALE"
+    }
+  ],
+  "totalAverage": {
+    "weight": 73500,
+    "bmi": 22.7
+  }
+}

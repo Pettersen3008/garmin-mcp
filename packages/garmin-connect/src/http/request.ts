@@ -1,4 +1,4 @@
-import { exchangeOAuth2 } from "../auth/oauth.ts";
+import { createNativeHeaders, refreshOAuth2 } from "../auth/oauth.ts";
 import type { GarminSession, SessionStore } from "../auth/session.ts";
 import {
   GarminAuthError,
@@ -7,10 +7,25 @@ import {
   GarminRateLimitError,
 } from "./errors.ts";
 
-export type GetJson = (input: {
+type GetRequest = {
   path: string;
   query?: Record<string, string>;
-}) => Promise<unknown>;
+  method?: "GET";
+  body?: never;
+};
+
+type WriteRequest = {
+  path: string;
+  query?: Record<string, string>;
+} & (
+  | { method: "POST" | "PUT"; body: unknown }
+  | { method: "DELETE"; body?: never }
+);
+
+export type GetJson = (input: GetRequest) => Promise<unknown>;
+export type RequestJson = (
+  input: GetRequest | WriteRequest,
+) => Promise<unknown>;
 
 export type Fetch = (
   input: string | URL | Request,
@@ -36,13 +51,13 @@ function validatePath(path: string): void {
   }
 }
 
-export function createGetJson(input: {
+export function createRequestJson(input: {
   diagnostics?: (event: DiagnosticEvent) => void;
   fetch: Fetch;
   now: () => number;
   session: GarminSession;
   sessionStore: SessionStore;
-}): GetJson {
+}): RequestJson {
   let session = input.session;
 
   async function accessToken(forceRefresh: boolean): Promise<string> {
@@ -60,17 +75,21 @@ export function createGetJson(input: {
     }
     session = {
       ...session,
-      oauth2: await exchangeOAuth2({
+      oauth2: await refreshOAuth2({
+        clientId: session.clientId,
         fetch: input.fetch,
         now: input.now,
-        oauth1: session.oauth1,
+        refreshToken: session.oauth2.refreshToken,
       }),
     };
     await input.sessionStore.save(session);
     return session.oauth2.accessToken;
   }
 
-  return async ({ path, query }) => {
+  return async (request) => {
+    const { path, query } = request;
+    const method = request.method ?? "GET";
+    const body = "body" in request ? request.body : undefined;
     validatePath(path);
     const url = new URL(path, "https://connectapi.garmin.com");
     for (const [key, value] of Object.entries(query ?? {})) {
@@ -78,23 +97,27 @@ export function createGetJson(input: {
     }
 
     let forceRefresh = false;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    const attempts = method === "GET" ? 2 : 1;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
       input.diagnostics?.({ kind: attempt === 0 ? "request" : "retry", path });
       let response: Response;
       try {
+        const headers = createNativeHeaders({
+          Accept: "application/json",
+          Authorization: `Bearer ${await accessToken(forceRefresh)}`,
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        });
         response = await input.fetch(url, {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${await accessToken(forceRefresh)}`,
-            "User-Agent": "GCM-Android-5.23",
-          },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          headers,
+          method,
           signal: AbortSignal.timeout(15_000),
         });
       } catch (error) {
         if (error instanceof GarminAuthError) {
           throw error;
         }
-        if (attempt === 0) {
+        if (attempt + 1 < attempts) {
           await Bun.sleep(250);
           continue;
         }
@@ -102,7 +125,7 @@ export function createGetJson(input: {
       }
 
       if (response.status === 401) {
-        if (attempt === 0) {
+        if (attempt + 1 < attempts) {
           forceRefresh = true;
           continue;
         }
@@ -111,7 +134,7 @@ export function createGetJson(input: {
       if (response.status === 429) {
         throw new GarminRateLimitError("Garmin rate limit reached");
       }
-      if (response.status >= 500 && attempt === 0) {
+      if (response.status >= 500 && attempt + 1 < attempts) {
         input.diagnostics?.({ kind: "retry", path, status: response.status });
         await Bun.sleep(250);
         continue;
@@ -121,11 +144,9 @@ export function createGetJson(input: {
           `Garmin request failed with HTTP ${response.status}`,
         );
       }
-      if (response.status === 204) {
-        return undefined;
-      }
       try {
-        return await response.json();
+        const text = await response.text();
+        return text.length === 0 ? undefined : JSON.parse(text);
       } catch {
         throw new GarminInvalidResponseError("Garmin returned invalid JSON");
       }

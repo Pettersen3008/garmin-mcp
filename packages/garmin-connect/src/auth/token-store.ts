@@ -8,23 +8,22 @@ import {
 const service = "@pettersen/garmin-connect";
 const account = "default";
 
-async function runSecurity(
-  args: string[],
-  secret?: string,
-): Promise<{ code: number; output: string }> {
-  if (process.platform !== "darwin") {
-    throw new GarminAuthError("Session storage requires the macOS Keychain");
-  }
+type Command = {
+  args: string[];
+  command: string;
+  stdin?: Uint8Array;
+};
 
-  const processHandle = Bun.spawn(["/usr/bin/security", ...args], {
+async function runCommand(input: {
+  args: string[];
+  command: string;
+  stdin?: Uint8Array;
+}): Promise<{ code: number; output: string }> {
+  const processHandle = Bun.spawn([input.command, ...input.args], {
     stderr: "pipe",
-    stdin: secret === undefined ? "ignore" : "pipe",
+    stdin: input.stdin ?? "ignore",
     stdout: "pipe",
   });
-  if (secret !== undefined && processHandle.stdin !== undefined) {
-    processHandle.stdin.write(`${secret}\n${secret}\n`);
-    processHandle.stdin.end();
-  }
   const [code, stdout, stderr] = await Promise.all([
     processHandle.exited,
     new Response(processHandle.stdout).text(),
@@ -34,50 +33,111 @@ async function runSecurity(
   return { code, output: code === 0 ? stdout : stderr };
 }
 
-export function createKeychainSessionStore(): SessionStore {
-  return {
-    async load() {
-      const result = await runSecurity([
-        "find-generic-password",
-        "-a",
-        account,
-        "-s",
-        service,
-        "-w",
-      ]);
-
-      if (result.code !== 0) {
-        if (result.output.includes("could not be found")) {
-          return null;
+export function credentialStoreCommand(
+  platform: NodeJS.Platform,
+  session?: GarminSession,
+): Command {
+  if (platform === "darwin") {
+    return session
+      ? {
+          args: [
+            "add-generic-password",
+            "-a",
+            account,
+            "-s",
+            service,
+            "-U",
+            "-w",
+            JSON.stringify(session),
+          ],
+          command: "/usr/bin/security",
         }
-        throw new GarminAuthError(
-          "Could not read the Garmin session from Keychain",
-        );
-      }
-
-      try {
-        return parseGarminSession(JSON.parse(result.output));
-      } catch (error) {
-        if (error instanceof GarminAuthError) {
-          throw error;
+      : {
+          args: ["find-generic-password", "-a", account, "-s", service, "-w"],
+          command: "/usr/bin/security",
+        };
+  }
+  if (platform === "linux") {
+    return session
+      ? {
+          args: [
+            "store",
+            "--label=Garmin MCP session",
+            "service",
+            service,
+            "account",
+            account,
+          ],
+          command: "secret-tool",
+          stdin: new TextEncoder().encode(JSON.stringify(session)),
         }
-        throw new GarminAuthError(
-          "Could not parse the Garmin session from Keychain",
-        );
-      }
-    },
+      : {
+          args: ["lookup", "service", service, "account", account],
+          command: "secret-tool",
+        };
+  }
+  if (platform === "win32") {
+    const script = session
+      ? "$p=Join-Path $env:LOCALAPPDATA 'garmin-mcp\\session';[IO.Directory]::CreateDirectory((Split-Path $p))|Out-Null;$b=[Text.Encoding]::UTF8.GetBytes([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($args[0])));[IO.File]::WriteAllBytes($p,[Security.Cryptography.ProtectedData]::Protect($b,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))"
+      : "$p=Join-Path $env:LOCALAPPDATA 'garmin-mcp\\session';if(!(Test-Path $p)){exit 3};$b=[Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($p),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser);[Console]::Out.Write([Text.Encoding]::UTF8.GetString($b))";
+    return {
+      args: [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        script,
+        ...(session
+          ? [Buffer.from(JSON.stringify(session)).toString("base64")]
+          : []),
+      ],
+      command: "powershell.exe",
+    };
+  }
+  throw new GarminAuthError(`Session storage is unsupported on ${platform}`);
+}
 
-    async save(session: GarminSession) {
-      const result = await runSecurity(
-        ["add-generic-password", "-a", account, "-s", service, "-U", "-w"],
-        JSON.stringify(session),
+export function createSessionStore(): SessionStore {
+  async function load() {
+    const result = await runCommand(credentialStoreCommand(process.platform));
+
+    if (result.code !== 0) {
+      if (
+        (process.platform === "darwin" &&
+          result.output.includes("could not be found")) ||
+        (process.platform === "linux" && result.code === 1) ||
+        (process.platform === "win32" && result.code === 3)
+      ) {
+        return null;
+      }
+      throw new GarminAuthError(
+        "Could not read the Garmin session from the system credential store",
       );
+    }
 
-      if (result.code !== 0) {
+    try {
+      return parseGarminSession(JSON.parse(result.output));
+    } catch (error) {
+      if (error instanceof GarminAuthError) {
+        throw error;
+      }
+      throw new GarminAuthError(
+        "Could not parse the Garmin session from the system credential store",
+      );
+    }
+  }
+
+  return {
+    load,
+    async save(session: GarminSession) {
+      if (
+        (await runCommand(credentialStoreCommand(process.platform, session)))
+          .code !== 0
+      ) {
         throw new GarminAuthError(
-          "Could not save the Garmin session to Keychain",
+          "Could not save the Garmin session to the system credential store",
         );
       }
+      await load();
     },
   };
 }

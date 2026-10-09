@@ -1,0 +1,15 @@
+{
+  "userProfilePK": 1,
+  "calendarDate": "2026-08-30",
+  "averageSpO2": 96,
+  "lowestSpO2": 91,
+  "lastSevenDaysAvgSpO2": "95.5",
+  "latestSpO2": 97,
+  "latestSpO2TimestampGMT": "2026-08-30T06:00:00.0",
+  "avgSleepSpO2": 95,
+  "spO2HourlyAverages": [
+    [1788040800000, null],
+    [1788044400000, 95],
+    [1788048000000, 96]
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "userProfilePk": 1,
+  "hrvSummary": {
+    "calendarDate": "2026-08-30",
+    "weeklyAvg": 48,
+    "lastNightAvg": 51,
+    "lastNight5MinHigh": 76,
+    "baseline": {
+      "lowUpper": 39,
+      "balancedLow": 42,
+      "balancedUpper": 61,
+      "markerValue": 51
+    },
+    "status": "BALANCED",
+    "feedbackPhrase": "BALANCED_2",
+    "createTimeStamp": "2026-08-30T06:00:00.0"
+  },
+  "hrvReadings": [
+    {
+      "hrvValue": 47,
+      "readingTimeGMT": "2026-08-30T00:00:00.0",
+      "readingTimeLocal": "2026-08-30T02:00:00.0"
+    },
+    {
+      "hrvValue": 54,
+      "readingTimeGMT": "2026-08-30T00:05:00.0",
+      "readingTimeLocal": "2026-08-30T02:05:00.0"
+    }
+  ]
+}
